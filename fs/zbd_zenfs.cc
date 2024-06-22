@@ -281,8 +281,11 @@ IOStatus ZonedBlockDevice::Open(bool readonly, bool exclusive) {
 }
 
 uint64_t ZonedBlockDevice::GetTotalSpace() {
-  uint64_t zone_size = GetZoneSize();         // 각 존의 크기
+  uint64_t zone_size = GetZoneSize();  // 각 존의 크기
+  std::cout << " GetTotalSpace:" << zone_size << std::endl;
+
   uint32_t nr_zones = zbd_be_->GetNrZones();  // 총 존의 수
+  std::cout << " GetTotalSpace:" << nr_zones << std::endl;
   return zone_size * nr_zones;
 }
 bool ZonedBlockDevice::PerformZoneCompaction() {
@@ -310,6 +313,8 @@ uint64_t ZonedBlockDevice::GetFreeSpace() {
   for (const auto z : io_zones) {
     free += z->capacity_;
   }
+  // GetTotalSpace 호출 전 디버깅 메시지
+  std::cout << "Calling GetTotalSpace" << std::endl;
   uint64_t total_space = GetTotalSpace();  // 총 공간을 반환하는 가정
   std::cout << "Total space: " << total_space << " bytes" << std::endl;
 
