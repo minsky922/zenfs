@@ -97,7 +97,9 @@ IOStatus Zone::Reset() {
 
   wp_ = start_;
   lifetime_ = Env::WLTH_NOT_SET;
-
+  //////
+  std::cout << "#####Starting Reset" << std::endl;
+  ////
   return IOStatus::OK();
 }
 
@@ -109,7 +111,9 @@ IOStatus Zone::Finish() {
 
   capacity_ = 0;
   wp_ = start_ + zbd_->GetZoneSize();
-
+  //////
+  std::cout << "######Starting Finish" << std::endl;
+  ////
   return IOStatus::OK();
 }
 
@@ -120,6 +124,9 @@ IOStatus Zone::Close() {
     IOStatus ios = zbd_be_->Close(start_);
     if (ios != IOStatus::OK()) return ios;
   }
+  //////
+  std::cout << "######Starting cloase" << std::endl;
+  ////
 
   return IOStatus::OK();
 }
@@ -276,7 +283,9 @@ uint64_t ZonedBlockDevice::GetFreeSpace() {
   for (const auto z : io_zones) {
     free += z->capacity_;
   }
-
+  //////
+  std::cout << "######getFreeSpace" << std::endl;
+  ////
   return free;
 }
 
