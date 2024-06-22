@@ -32,6 +32,8 @@
     (S_IRUSR | S_IRGRP | S_IROTH | S_IWUSR | S_IWGRP | S_IWOTH)) == 0)
 #define ZENFS_ZONEFS_DEFAULT_MAX_LIMIT 14
 #define ZENFS_ZONEFS_DEFAULT_MAX_RD_LIMIT 100
+// test
+// test
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -362,9 +364,9 @@ int ZoneFsBackend::Write(char *data, uint32_t size, uint64_t pos) {
   return written;
 }
 
-bool ZoneFsBackend::ZoneIsSwr(__attribute__((unused))
-                              std::unique_ptr<ZoneList> &zones,
-                              __attribute__((unused)) unsigned int idx) {
+bool ZoneFsBackend::ZoneIsSwr(
+    __attribute__((unused)) std::unique_ptr<ZoneList> &zones,
+    __attribute__((unused)) unsigned int idx) {
   return true;
 };
 
@@ -384,17 +386,17 @@ bool ZoneFsBackend::ZoneIsActive(std::unique_ptr<ZoneList> &zones,
   struct stat *z = &((struct stat *)zones->GetData())[idx];
   return z->st_size > 0 && (uint64_t)z->st_size < zone_sz_;
 };
-bool ZoneFsBackend::ZoneIsOpen(__attribute__((unused))
-                               std::unique_ptr<ZoneList> &zones,
-                               __attribute__((unused)) unsigned int idx) {
+bool ZoneFsBackend::ZoneIsOpen(
+    __attribute__((unused)) std::unique_ptr<ZoneList> &zones,
+    __attribute__((unused)) unsigned int idx) {
   // With zonefs there is no way to determine if a zone is open. Since the
   // the zone list is obtained before any ZenFS activity is performed, we
   // assume that all zones are closed.
   return false;
 };
-uint64_t ZoneFsBackend::ZoneStart(__attribute__((unused))
-                                  std::unique_ptr<ZoneList> &zones,
-                                  unsigned int idx) {
+uint64_t ZoneFsBackend::ZoneStart(
+    __attribute__((unused)) std::unique_ptr<ZoneList> &zones,
+    unsigned int idx) {
   return idx * zone_sz_;
 };
 uint64_t ZoneFsBackend::ZoneMaxCapacity(
