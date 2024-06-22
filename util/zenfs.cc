@@ -190,6 +190,8 @@ int zenfs_tool_mkfs() {
     return 1;
   }
 
+  // 디버깅 메시지 추가
+  std::cout << "Calling GetFreeSpace" << std::endl;
   fprintf(stdout, "ZenFS file system created. Free space: %lu MB\n",
           zbdRaw->GetFreeSpace() / (1024 * 1024));
 
