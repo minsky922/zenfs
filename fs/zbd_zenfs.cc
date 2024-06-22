@@ -18,12 +18,14 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+#include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -278,11 +280,59 @@ IOStatus ZonedBlockDevice::Open(bool readonly, bool exclusive) {
   return IOStatus::OK();
 }
 
+uint64_t ZonedBlockDevice::GetTotalSpace() {
+  uint64_t zone_size = GetZoneSize();         // 각 존의 크기
+  uint32_t nr_zones = zbd_be_->GetNrZones();  // 총 존의 수
+  return zone_size * nr_zones;
+}
+bool ZonedBlockDevice::PerformZoneCompaction() {
+  // ZC 유효 데이터 복사 시간 측정
+  auto start_data_copy = std::chrono::high_resolution_clock::now();
+
+  // 실제 데이터 복사 로직 (예시로 딜레이를 추가)
+  std::this_thread::sleep_for(
+      std::chrono::seconds(2));  // 데이터 복사 시뮬레이션
+
+  auto end_data_copy = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> data_copy_time =
+      end_data_copy - start_data_copy;
+
+  // 데이터 복사 시간 출력
+  std::cout << "ZC valid data copy time: " << data_copy_time.count()
+            << " seconds" << std::endl;
+
+  // ZC가 성공적으로 완료되었음을 반환
+  return true;
+}
+
 uint64_t ZonedBlockDevice::GetFreeSpace() {
   uint64_t free = 0;
   for (const auto z : io_zones) {
     free += z->capacity_;
   }
+  uint64_t total_space = GetTotalSpace();  // 총 공간을 반환하는 가정
+  std::cout << "Total space: " << total_space << " bytes" << std::endl;
+
+  if (free <= total_space * 0.2) {
+    // 블로킹 시작 시간 측정
+    auto start_blocking = std::chrono::high_resolution_clock::now();
+
+    // 무한 루프로 I/O 블로킹
+    while (true) {
+      if (PerformZoneCompaction()) {
+        break;
+      }
+    }
+
+    // 블로킹 종료 시간 측정
+    auto end_blocking = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> blocking_time = end_blocking - start_blocking;
+
+    // 블로킹 시간 출력
+    std::cout << "ZC I/O blocking time: " << blocking_time.count() << " seconds"
+              << std::endl;
+  }
+
   //////
   std::cout << "######getFreeSpace" << std::endl;
   ////

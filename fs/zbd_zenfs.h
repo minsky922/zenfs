@@ -187,6 +187,8 @@ class ZonedBlockDevice {
   IOStatus AllocateMetaZone(Zone **out_meta_zone);
 
   uint64_t GetFreeSpace();
+  uint64_t GetTotalSpace();
+  bool PerformZoneCompaction();
   uint64_t GetUsedSpace();
   uint64_t GetReclaimableSpace();
 
