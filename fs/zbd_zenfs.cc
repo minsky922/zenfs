@@ -277,7 +277,6 @@ uint64_t ZonedBlockDevice::GetFreeSpace() {
     free += z->capacity_;
   }
 
-  while (1);
   return free;
 }
 
