@@ -100,7 +100,7 @@ IOStatus Zone::Reset() {
   wp_ = start_;
   lifetime_ = Env::WLTH_NOT_SET;
   //////
-  std::cout << "#####Starting Reset" << std::endl;
+  std::cout << "#####zone Reset" << std::endl;
   ////
   return IOStatus::OK();
 }
@@ -114,7 +114,7 @@ IOStatus Zone::Finish() {
   capacity_ = 0;
   wp_ = start_ + zbd_->GetZoneSize();
   //////
-  std::cout << "######Starting Finish" << std::endl;
+  std::cout << "######zone Finish" << std::endl;
   ////
   return IOStatus::OK();
 }
@@ -127,7 +127,7 @@ IOStatus Zone::Close() {
     if (ios != IOStatus::OK()) return ios;
   }
   //////
-  std::cout << "######Starting cloase" << std::endl;
+  std::cout << "######Starting close" << std::endl;
   ////
 
   return IOStatus::OK();
