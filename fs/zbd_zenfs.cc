@@ -276,7 +276,8 @@ uint64_t ZonedBlockDevice::GetFreeSpace() {
   for (const auto z : io_zones) {
     free += z->capacity_;
   }
-  printf("#######################test") return free;
+  printf("#######################test");
+  return free;
 }
 
 uint64_t ZonedBlockDevice::GetUsedSpace() {
