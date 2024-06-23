@@ -1744,10 +1744,15 @@ void ZenFS::GetZenFSSnapshot(ZenFSSnapshot& snapshot,
   }
 }
 
+/*  주어진 익스텐트 목록을 파일 이름별로 그룹화하고,
+ .sst 파일에 대해 유효 데이터를 마이그레이션합니다.
+  마이그레이션이 성공적으로 완료되면 사용되지 않는 IO 존을 재설정*/
 IOStatus ZenFS::MigrateExtents(
     const std::vector<ZoneExtentSnapshot*>& extents) {
   IOStatus s;
   // Group extents by their filename
+  // file_extents는 파일 이름을 키로 하고, 해당 파일의 익스텐트 목록을 값으로 가지는 맵
+  // fname이 .sst로 끝나는 경우에만 file_extents 맵에 추가
   std::map<std::string, std::vector<ZoneExtentSnapshot*>> file_extents;
   for (auto* ext : extents) {
     std::string fname = ext->filename;
@@ -1756,24 +1761,27 @@ IOStatus ZenFS::MigrateExtents(
       file_extents[fname].emplace_back(ext);
     }
   }
-
+  // 파일 익스텐트 마이그레이션 및 존 재설정
   for (const auto& it : file_extents) {
     s = MigrateFileExtents(it.first, it.second);
-    if (!s.ok()) break;
-    s = zbd_->ResetUnusedIOZones();
-    if (!s.ok()) break;
+    if (!s.ok()) break;             // 마이 그레이션 실패하면 break
+    s = zbd_->ResetUnusedIOZones(); // 사용되지 않는 IO 존을 재설정
+    if (!s.ok()) break;             // 재설정이 실패하면 루프를 중단합니다
   }
   return s;
 }
-
+/* 주어진 파일의 익스텐트를 새로운 존으로 마이그레이션하는 작업을 수행 */
+// 함수는 여러 단계를 통해 유효 데이터를 새로운 존으로 이동시키고, 파일 시스템의 무결성을 유지
 IOStatus ZenFS::MigrateFileExtents(
     const std::string& fname,
     const std::vector<ZoneExtentSnapshot*>& migrate_exts) {
   IOStatus s = IOStatus::OK();
+  // 파일 이름과 익스텐트 개수를 로깅
   Info(logger_, "MigrateFileExtents, fname: %s, extent count: %lu",
        fname.data(), migrate_exts.size());
 
   // The file may be deleted by other threads, better double check.
+  // 파일을 가져옵니다
   auto zfile = GetFile(fname);
   if (zfile == nullptr) {
     return IOStatus::OK();
@@ -1784,17 +1792,18 @@ IOStatus ZenFS::MigrateFileExtents(
   if (!zfile->TryAcquireWRLock()) {
     return IOStatus::OK();
   }
-
+  // 새로운 익스텐트 리스트 생성
   std::vector<ZoneExtent*> new_extent_list;
   std::vector<ZoneExtent*> extents = zfile->GetExtents();
   for (const auto* ext : extents) {
     new_extent_list.push_back(
         new ZoneExtent(ext->start_, ext->length_, ext->zone_));
   }
-
+  // 익스텐트 마이그레이션
   // Modify the new extent list
   for (ZoneExtent* ext : new_extent_list) {
     // Check if current extent need to be migrated
+    // 유효 데이터(즉, 마이그레이션할 필요가 있는 익스텐트)를 확인
     auto it = std::find_if(migrate_exts.begin(), migrate_exts.end(),
                            [&](const ZoneExtentSnapshot* ext_snapshot) {
                              return ext_snapshot->start == ext->start_ &&
