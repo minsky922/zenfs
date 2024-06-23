@@ -94,12 +94,13 @@ IOStatus Zone::Reset() {
   if (ios != IOStatus::OK()) return ios;
 
   if (offline)
-    capacity_ = 0;                              // 존이 오프라인 상태이면 용량을 0으로 설정
+    capacity_ = 0;  // 존이 오프라인 상태이면 용량을 0으로 설정
   else
-    max_capacity_ = capacity_ = max_capacity;   // 최대 용량과 현재 용량을 새로 설정된 최대 용량으로 업데이트
+    max_capacity_ = capacity_ = max_capacity;  // 최대 용량과 현재 용량을 새로
+                                               // 설정된 최대 용량으로 업데이트
 
-  wp_ = start_;                                 // 쓰기 포인터(write pointer)를 존의 시작 위치로 재설정
-  lifetime_ = Env::WLTH_NOT_SET;                // 존의 수명(lifetime)을 초기화
+  wp_ = start_;  // 쓰기 포인터(write pointer)를 존의 시작 위치로 재설정
+  lifetime_ = Env::WLTH_NOT_SET;  // 존의 수명(lifetime)을 초기화
   //////
   std::cout << "#####zone Reset" << std::endl;
   ////
@@ -163,7 +164,8 @@ IOStatus Zone::Append(char *data, uint32_t size) {
   return IOStatus::OK();
 }
 
-/* 존의 사용 플래그를 해제하려고 시도하며, 해제가 실패하면 오류 상태를 반환합니다. 성공적으로 해제되면 IOStatus::OK()를 반환*/
+/* 존의 사용 플래그를 해제하려고 시도하며, 해제가 실패하면 오류 상태를
+ * 반환합니다. 성공적으로 해제되면 IOStatus::OK()를 반환*/
 inline IOStatus Zone::CheckRelease() {
   if (!Release()) {
     assert(false);
@@ -282,67 +284,14 @@ IOStatus ZonedBlockDevice::Open(bool readonly, bool exclusive) {
   return IOStatus::OK();
 }
 
-uint64_t ZonedBlockDevice::GetTotalSpace() {
-  uint64_t zone_size = GetZoneSize();  // 각 존의 크기
-  std::cout << " GetTotalSpace:" << zone_size << std::endl;
-
-  uint32_t nr_zones = zbd_be_->GetNrZones();  // 총 존의 수
-  std::cout << " GetTotalSpace:" << nr_zones << std::endl;
-  return zone_size * nr_zones;
-}
-bool ZonedBlockDevice::PerformZoneCompaction() {
-  // ZC 유효 데이터 복사 시간 측정
-  auto start_data_copy = std::chrono::high_resolution_clock::now();
-
-  // 실제 데이터 복사 로직 (예시로 딜레이를 추가)
-  std::this_thread::sleep_for(
-      std::chrono::seconds(2));  // 데이터 복사 시뮬레이션
-
-  auto end_data_copy = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> data_copy_time =
-      end_data_copy - start_data_copy;
-
-  // 데이터 복사 시간 출력
-  std::cout << "ZC valid data copy time: " << data_copy_time.count()
-            << " seconds" << std::endl;
-
-  // ZC가 성공적으로 완료되었음을 반환
-  return true;
-}
-
 uint64_t ZonedBlockDevice::GetFreeSpace() {
   uint64_t free = 0;
   for (const auto z : io_zones) {
     free += z->capacity_;
   }
-  // GetTotalSpace 호출 전 디버깅 메시지
-  std::cout << "Calling GetTotalSpace" << std::endl;
-  uint64_t total_space = GetTotalSpace();  // 총 공간을 반환하는 가정
-  std::cout << "Total space: " << total_space << " bytes" << std::endl;
 
-  if (free <= total_space * 0.2) {
-    // 블로킹 시작 시간 측정
-    auto start_blocking = std::chrono::high_resolution_clock::now();
-
-    // 무한 루프로 I/O 블로킹
-    while (true) {
-      if (PerformZoneCompaction()) {
-        break;
-      }
-    }
-
-    // 블로킹 종료 시간 측정
-    auto end_blocking = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> blocking_time = end_blocking - start_blocking;
-
-    // 블로킹 시간 출력
-    std::cout << "ZC I/O blocking time: " << blocking_time.count() << " seconds"
-              << std::endl;
-  }
-
-  //////
   std::cout << "######getFreeSpace" << std::endl;
-  ////
+
   return free;
 }
 
@@ -505,25 +454,36 @@ IOStatus ZonedBlockDevice::AllocateMetaZone(Zone **out_meta_zone) {
   Error(logger_, "Out of metadata zones, we should go to read only now.");
   return IOStatus::NoSpace("Out of metadata zones");
 }
-/* io_zones 벡터의 각 존을 순회하며, 사용되지 않는 IO 존을 재설정합니다. 
+/* io_zones 벡터의 각 존을 순회하며, 사용되지 않는 IO 존을 재설정합니다.
 재설정이 완료되면, 필요에 따라 토큰을 반환합니다.*/
 IOStatus ZonedBlockDevice::ResetUnusedIOZones() {
   for (const auto z : io_zones) {
-    if (z->Acquire()) {                                   // Acquire 함수는 존을 사용할 수 있는지 확인하고, 가능하면 락을 거는 역할
-      if (!z->IsEmpty() && !z->IsUsed()) {                // 현재 존이 비어있지 않고, 사용 중이지 않은 경우를 확인
-        bool full = z->IsFull();                          // 현재 존이 가득 찬 상태인지 확인하여 full 변수에 저장
-        IOStatus reset_status = z->Reset();               // z->Reset(): 현재 존을 재설정
-        IOStatus release_status = z->CheckRelease();      // z->CheckRelease(): 재설정 후 존을 해제
-        if (!reset_status.ok()) return reset_status;      // 두 함수의 상태를 확인하여 오류가 발생하면 해당 상태를 반환
+    // Acquire 함수는 존을 사용할 수 있는지 확인하고 가능하면 락을 거는 역할
+    if (z->Acquire()) {
+      // 현재 존이 비어있지 않고 사용중이지 않은 경우를 확인
+      if (!z->IsEmpty() && !z->IsUsed()) {
+        bool full = z->IsFull();  // 현재 존이 가득 찬 상태인지 확인하여 full
+                                  // 변수에 저장
+        IOStatus reset_status = z->Reset();  // z->Reset(): 현재 존을 재설정
+        IOStatus release_status =
+            z->CheckRelease();  // z->CheckRelease(): 재설정 후 존을 해제
+        if (!reset_status.ok())
+          return reset_status;  // 두 함수의 상태를 확인하여 오류가 발생하면
+                                // 해당 상태를 반환
         if (!release_status.ok()) return release_status;  //
-        if (!full) PutActiveIOZoneToken();                // 현재 존이 가득 차지 않았다면, PutActiveIOZoneToken 함수를 호출하여 토큰을 반환
-      } else {                                            // 현재 존이 비어있거나 사용 중인 경우, CheckRelease 함수로 해제 상태를 확인하고, 오류가 발생하면 해당 상태를 반환
+        if (!full)
+          PutActiveIOZoneToken();  // 현재 존이 가득 차지 않았다면,
+                                   // PutActiveIOZoneToken 함수를 호출하여
+                                   // 토큰을 반환
+      } else {  // 현재 존이 비어있거나 사용 중인 경우, CheckRelease 함수로 해제
+                // 상태를 확인하고, 오류가 발생하면 해당 상태를 반환
         IOStatus release_status = z->CheckRelease();
         if (!release_status.ok()) return release_status;
       }
     }
   }
-  return IOStatus::OK();                                  // 모든 존에 대한 작업이 성공적으로 완료되면 IOStatus::OK()를 반환
+  return IOStatus::OK();  // 모든 존에 대한 작업이 성공적으로 완료되면
+                          // IOStatus::OK()를 반환
 }
 
 void ZonedBlockDevice::WaitForOpenIOZoneToken(bool prioritized) {
