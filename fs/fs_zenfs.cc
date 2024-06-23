@@ -268,38 +268,51 @@ ZenFS::~ZenFS() {
   ClearFiles();
   delete zbd_;
 }
-
+/* 이 함수는 백그라운드에서 주기적으로 실행되며,
+ 여유 공간 비율이 설정된 임계값 이하로 떨어지면 가비지 컬렉션을 트리거합니다.
+ 스냅샷을 통해 현재 파일 시스템 상태를 확인하고,
+ 가비지가 많은 존을 찾아 데이터를 새로운 존으로 마이그레이션합니다.
+ 이를 통해 ZenFS의 여유 공간을 확보하고 성능을 유지합니다.*/
 void ZenFS::GCWorker() {
   while (run_gc_worker_) {
-    usleep(1000 * 1000 * 10);
-
-    uint64_t non_free = zbd_->GetUsedSpace() + zbd_->GetReclaimableSpace();
+    usleep(1000 * 1000 * 10); // 10초 동안 대기
+    /* 여유 공간 계산*/
+    // 사용된 공간과 회수 가능한 공간을 더한 값을 non_free에 저장
+    uint64_t non_free = zbd_->GetUsedSpace() + zbd_->GetReclaimableSpace(); 
+    // 여유 공간을 free에 저장
     uint64_t free = zbd_->GetFreeSpace();
+    // 총 공간 대비 여유 공간의 비율을 free_percent에 계산
     uint64_t free_percent = (100 * free) / (free + non_free);
+    //////////////////
     ZenFSSnapshot snapshot;
     ZenFSSnapshotOptions options;
-
+    // 여유 공간 비율이 GC_START_LEVEL보다 크면 루프의 다음 반복으로 넘어갑니다. 
+    // 즉, 여유 공간이 충분한 경우 GC를 수행하지 않습니다
     if (free_percent > GC_START_LEVEL) continue;
-
+    /* 스냅샷 옵션을 설정하여 존, 파일, 가비지 정보를 포함하도록 합니다. */
     options.zone_ = 1;
     options.zone_file_ = 1;
     options.log_garbage_ = 1;
-
+    // GetZenFSSnapshot 함수를 호출하여 파일 시스템의 현재 상태를 스냅샷으로 가져옵니다
     GetZenFSSnapshot(snapshot, options);
-
+    // 가비지 컬렉션 임계값을 계산하여 저장합니다
     uint64_t threshold = (100 - GC_SLOPE * (GC_START_LEVEL - free_percent));
-    std::set<uint64_t> migrate_zones_start;
-    for (const auto& zone : snapshot.zones_) {
-      if (zone.capacity == 0) {
-        uint64_t garbage_percent_approx =
+    /* 마이그레이션할 존 선택 */
+    // 스냅샷에서 각 존을 반복하면서, 가비지 비율이 임계값을 초과하는 존을 선택
+    // 선택된 존의 시작 위치를 migrate_zones_start 집합에 저장
+    std::set<uint64_t> migrate_zones_start;         // 마이그레이션할 존의 시작 위치를 저장할 집합 선언
+    for (const auto& zone : snapshot.zones_) {      // 스냅샷의 각 존을 반복
+      if (zone.capacity == 0) {                     // 현재 존이 사용되지 않는 경우
+        uint64_t garbage_percent_approx =           // 가비지 비율 계산
             100 - 100 * zone.used_capacity / zone.max_capacity;
-        if (garbage_percent_approx > threshold &&
-            garbage_percent_approx < 100) {
-          migrate_zones_start.emplace(zone.start);
+        if (garbage_percent_approx > threshold &&   // 가비지 비율이 임계값을 초과하고
+            garbage_percent_approx < 100) {         // 100% 미만인 경우
+          migrate_zones_start.emplace(zone.start);  // 존의 시작 위치를 집합에 추가
         }
       }
     }
-
+    /* 마이그레이션할 익스텐트 선택 */
+    // 스냅샷에서 각 익스텐트를 반복하면서, 선택된 존에 속하는 익스텐트를 migrate_exts 벡터에 저장
     std::vector<ZoneExtentSnapshot*> migrate_exts;
     for (auto& ext : snapshot.extents_) {
       if (migrate_zones_start.find(ext.zone_start) !=
@@ -307,7 +320,9 @@ void ZenFS::GCWorker() {
         migrate_exts.push_back(&ext);
       }
     }
-
+    /* 익스텐트 마이그레이션 */
+    // 마이그레이션할 익스텐트가 있는 경우, MigrateExtents 함수를 호출하여 익스텐트를 마이그레이션
+    // 마이그레이션이 실패하면 오류를 로깅
     if (migrate_exts.size() > 0) {
       IOStatus s;
       Info(logger_, "Garbage collecting %d extents \n",
