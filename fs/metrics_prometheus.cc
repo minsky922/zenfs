@@ -1,3 +1,6 @@
+/* Prometheus를 사용하여 ZenFS의 메트릭을 수집하고 보고하는 기능을 포함합니다.
+ * 성능 모니터링과 관련된 작업을 수행하며, Prometheus와의 통합을 통해 ZenFS의
+ * 상태를 모니터링할 수 있게 합니다*/
 #include "metrics_prometheus.h"
 
 #include <prometheus/collectable.h>

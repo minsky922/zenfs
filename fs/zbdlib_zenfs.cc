@@ -3,7 +3,8 @@
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
-
+/* ZBD 라이브러리와 관련된 기능을 구현하고 정의하는 파일들입니다. ZBD와의
+ * 상호작용을 처리하며, 필요한 라이브러리 함수들을 제공합니다*/
 #if !defined(ROCKSDB_LITE) && !defined(OS_WIN)
 
 #include "zbdlib_zenfs.h"

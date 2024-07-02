@@ -3,3 +3,4 @@
 # fs/*.cc.d
 # tests/results
 # fs/version.h
+fs/test.cc

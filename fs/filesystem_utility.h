@@ -3,7 +3,9 @@
 //  SPDX-FileCopyrightText: 2022, Western Digital Corporation or its affiliates.
 //  Written by Kuankuan Guo <guokuankuan@bytedance.com>
 //
-
+/* 파일 시스템 경로를 처리하는 유틸리티 함수를 포함하고 있습니다. 예를 들어,
+ * 파일 경로를 정규화하거나 부모 경로를 가져오는 등의 작업을 수행합니다. 이
+ * 파일은 경로 관련 작업을 쉽게 처리할 수 있도록 도와줍니다*/
 #include <cassert>
 #include <iostream>
 #include <sstream>

@@ -3,7 +3,9 @@
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
-
+/* ZenFS의 주요 기능을 구현하는 파일로,
+ 파일 시스템의 마운트, 언마운트, 읽기, 쓰기 등의 기능을 포함합니다. 이 파일은
+ ZenFS의 핵심적인 로직을 담고 있습니다.*/
 #if !defined(ROCKSDB_LITE) && defined(OS_LINUX)
 
 #include "fs_zenfs.h"
@@ -275,10 +277,10 @@ ZenFS::~ZenFS() {
  이를 통해 ZenFS의 여유 공간을 확보하고 성능을 유지합니다.*/
 void ZenFS::GCWorker() {
   while (run_gc_worker_) {
-    usleep(1000 * 1000 * 10); // 10초 동안 대기
+    usleep(1000 * 1000 * 10);  // 10초 동안 대기
     /* 여유 공간 계산*/
     // 사용된 공간과 회수 가능한 공간을 더한 값을 non_free에 저장
-    uint64_t non_free = zbd_->GetUsedSpace() + zbd_->GetReclaimableSpace(); 
+    uint64_t non_free = zbd_->GetUsedSpace() + zbd_->GetReclaimableSpace();
     // 여유 공간을 free에 저장
     uint64_t free = zbd_->GetFreeSpace();
     // 총 공간 대비 여유 공간의 비율을 free_percent에 계산
@@ -286,33 +288,38 @@ void ZenFS::GCWorker() {
     //////////////////
     ZenFSSnapshot snapshot;
     ZenFSSnapshotOptions options;
-    // 여유 공간 비율이 GC_START_LEVEL보다 크면 루프의 다음 반복으로 넘어갑니다. 
+    // 여유 공간 비율이 GC_START_LEVEL보다 크면 루프의 다음 반복으로 넘어갑니다.
     // 즉, 여유 공간이 충분한 경우 GC를 수행하지 않습니다
     if (free_percent > GC_START_LEVEL) continue;
     /* 스냅샷 옵션을 설정하여 존, 파일, 가비지 정보를 포함하도록 합니다. */
     options.zone_ = 1;
     options.zone_file_ = 1;
     options.log_garbage_ = 1;
-    // GetZenFSSnapshot 함수를 호출하여 파일 시스템의 현재 상태를 스냅샷으로 가져옵니다
+    // GetZenFSSnapshot 함수를 호출하여 파일 시스템의 현재 상태를 스냅샷으로
+    // 가져옵니다
     GetZenFSSnapshot(snapshot, options);
     // 가비지 컬렉션 임계값을 계산하여 저장합니다
     uint64_t threshold = (100 - GC_SLOPE * (GC_START_LEVEL - free_percent));
     /* 마이그레이션할 존 선택 */
     // 스냅샷에서 각 존을 반복하면서, 가비지 비율이 임계값을 초과하는 존을 선택
     // 선택된 존의 시작 위치를 migrate_zones_start 집합에 저장
-    std::set<uint64_t> migrate_zones_start;         // 마이그레이션할 존의 시작 위치를 저장할 집합 선언
-    for (const auto& zone : snapshot.zones_) {      // 스냅샷의 각 존을 반복
-      if (zone.capacity == 0) {                     // 현재 존이 사용되지 않는 경우
-        uint64_t garbage_percent_approx =           // 가비지 비율 계산
+    std::set<uint64_t> migrate_zones_start;  // 마이그레이션할 존의 시작 위치를
+                                             // 저장할 집합 선언
+    for (const auto& zone : snapshot.zones_) {  // 스냅샷의 각 존을 반복
+      if (zone.capacity == 0) {  // 현재 존이 사용되지 않는 경우
+        uint64_t garbage_percent_approx =  // 가비지 비율 계산
             100 - 100 * zone.used_capacity / zone.max_capacity;
-        if (garbage_percent_approx > threshold &&   // 가비지 비율이 임계값을 초과하고
-            garbage_percent_approx < 100) {         // 100% 미만인 경우
-          migrate_zones_start.emplace(zone.start);  // 존의 시작 위치를 집합에 추가
+        if (garbage_percent_approx >
+                threshold &&  // 가비지 비율이 임계값을 초과하고
+            garbage_percent_approx < 100) {  // 100% 미만인 경우
+          migrate_zones_start.emplace(
+              zone.start);  // 존의 시작 위치를 집합에 추가
         }
       }
     }
     /* 마이그레이션할 익스텐트 선택 */
-    // 스냅샷에서 각 익스텐트를 반복하면서, 선택된 존에 속하는 익스텐트를 migrate_exts 벡터에 저장
+    // 스냅샷에서 각 익스텐트를 반복하면서, 선택된 존에 속하는 익스텐트를
+    // migrate_exts 벡터에 저장
     std::vector<ZoneExtentSnapshot*> migrate_exts;
     for (auto& ext : snapshot.extents_) {
       if (migrate_zones_start.find(ext.zone_start) !=
@@ -321,8 +328,8 @@ void ZenFS::GCWorker() {
       }
     }
     /* 익스텐트 마이그레이션 */
-    // 마이그레이션할 익스텐트가 있는 경우, MigrateExtents 함수를 호출하여 익스텐트를 마이그레이션
-    // 마이그레이션이 실패하면 오류를 로깅
+    // 마이그레이션할 익스텐트가 있는 경우, MigrateExtents 함수를 호출하여
+    // 익스텐트를 마이그레이션 마이그레이션이 실패하면 오류를 로깅
     if (migrate_exts.size() > 0) {
       IOStatus s;
       Info(logger_, "Garbage collecting %d extents \n",
@@ -1354,6 +1361,10 @@ Status ZenFS::RecoverFrom(ZenMetaLog* log) {
     return Status::NotFound("ZenFS", "No snapshot found");
 }
 
+/* 파일 시스템을 마운트하는 것은 운영 체제와 저장 장치 간의 인터페이스를
+  설정하여 사용자가 저장 장치의 데이터를 접근하고 관리할 수 있게 하는
+  과정입니다. 파일 시스템이 마운트되면, 운영 체제는 특정 디렉토리(마운트
+  포인트)를 통해 파일 시스템의 내용을 볼 수 있게 됩니다. */
 /* Mount the filesystem by recovering form the latest valid metadata zone */
 Status ZenFS::Mount(bool readonly) {
   std::vector<Zone*> metazones = zbd_->GetMetaZones();
@@ -1370,7 +1381,8 @@ Status ZenFS::Mount(bool readonly) {
           "Need at least two non-offline meta zones to open for write");
     return Status::NotSupported();
   }
-
+  /* 각 메타존에서 유효한 슈퍼블록을 찾아서 valid_superblocks, valid_logs,
+   * valid_zones 벡터에 저장 */
   /* Find all valid superblocks */
   for (const auto z : metazones) {
     std::unique_ptr<ZenMetaLog> log;
@@ -1489,13 +1501,13 @@ Status ZenFS::Mount(bool readonly) {
   Info(logger_, "Superblock sequence %d", (int)superblock_->GetSeq());
   Info(logger_, "Finish threshold %u", superblock_->GetFinishTreshold());
   Info(logger_, "Filesystem mount OK");
-
+  /* 사용하지 않는 IO 존을 리셋하여 공간을 회수합니다. */
   if (!readonly) {
     Info(logger_, "Resetting unused IO Zones..");
     IOStatus status = zbd_->ResetUnusedIOZones();
     if (!status.ok()) return status;
     Info(logger_, "  Done");
-
+    /* 가비지 컬렉션이 활성화된 경우, 가비지 컬렉션 작업자를 시작합니다. */
     if (superblock_->IsGCEnabled()) {
       Info(logger_, "Starting garbage collection worker");
       run_gc_worker_ = true;
@@ -1766,8 +1778,8 @@ IOStatus ZenFS::MigrateExtents(
     const std::vector<ZoneExtentSnapshot*>& extents) {
   IOStatus s;
   // Group extents by their filename
-  // file_extents는 파일 이름을 키로 하고, 해당 파일의 익스텐트 목록을 값으로 가지는 맵
-  // fname이 .sst로 끝나는 경우에만 file_extents 맵에 추가
+  // file_extents는 파일 이름을 키로 하고, 해당 파일의 익스텐트 목록을 값으로
+  // 가지는 맵 fname이 .sst로 끝나는 경우에만 file_extents 맵에 추가
   std::map<std::string, std::vector<ZoneExtentSnapshot*>> file_extents;
   for (auto* ext : extents) {
     std::string fname = ext->filename;
@@ -1779,14 +1791,15 @@ IOStatus ZenFS::MigrateExtents(
   // 파일 익스텐트 마이그레이션 및 존 재설정
   for (const auto& it : file_extents) {
     s = MigrateFileExtents(it.first, it.second);
-    if (!s.ok()) break;             // 마이 그레이션 실패하면 break
-    s = zbd_->ResetUnusedIOZones(); // 사용되지 않는 IO 존을 재설정
-    if (!s.ok()) break;             // 재설정이 실패하면 루프를 중단합니다
+    if (!s.ok()) break;              // 마이 그레이션 실패하면 break
+    s = zbd_->ResetUnusedIOZones();  // 사용되지 않는 IO 존을 재설정
+    if (!s.ok()) break;  // 재설정이 실패하면 루프를 중단합니다
   }
   return s;
 }
 /* 주어진 파일의 익스텐트를 새로운 존으로 마이그레이션하는 작업을 수행 */
-// 함수는 여러 단계를 통해 유효 데이터를 새로운 존으로 이동시키고, 파일 시스템의 무결성을 유지
+// 함수는 여러 단계를 통해 유효 데이터를 새로운 존으로 이동시키고, 파일 시스템의
+// 무결성을 유지
 IOStatus ZenFS::MigrateFileExtents(
     const std::string& fname,
     const std::vector<ZoneExtentSnapshot*>& migrate_exts) {

@@ -3,7 +3,8 @@
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
-
+/*  I/O 관련 기능을 구현하고 정의하는 파일입니다. 데이터 입출력 처리, 버퍼 관리,
+ * I/O 작업의 스케줄링 등 ZenFS의 핵심적인 I/O 작업을 처리합니다*/
 #if !defined(ROCKSDB_LITE) && !defined(OS_WIN)
 
 #include "io_zenfs.h"

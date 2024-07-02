@@ -3,7 +3,8 @@
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
-
+/*ZenFS의 주요 데이터 구조와 인터페이스를 정의하는 헤더 파일입니다. ZenFS의
+ * 클래스와 함수 선언을 포함하고 있습니다*/
 #pragma once
 
 #if __cplusplus < 201703L
@@ -35,6 +36,7 @@ class ZoneFileSnapshot;
 class ZenFSSnapshot;
 class ZenFSSnapshotOptions;
 
+/* 파일 시스템의 메타데이터 및 설정 정보를 포함*/
 class Superblock {
   uint32_t magic_ = 0;
   char uuid_[37] = {0};
@@ -43,7 +45,7 @@ class Superblock {
   uint32_t flags_ = 0;
   uint32_t block_size_ = 0; /* in bytes */
   uint32_t zone_size_ = 0;  /* in blocks */
-  uint32_t nr_zones_ = 0;
+  uint32_t nr_zones_ = 0;   /* 총 존의 수 */
   char aux_fs_path_[256] = {0};
   uint32_t finish_treshold_ = 0;
   char zenfs_version_[64]{0};
@@ -54,7 +56,8 @@ class Superblock {
   const uint32_t ENCODED_SIZE = 512;
   const uint32_t CURRENT_SUPERBLOCK_VERSION = 2;
   const uint32_t DEFAULT_FLAGS = 0;
-  const uint32_t FLAGS_ENABLE_GC = 1 << 0;
+  const uint32_t FLAGS_ENABLE_GC =
+      1 << 0; /* 가비지 컬렉션(GC)을 활성화하는 플래그 */
 
   Superblock() {}
 
@@ -94,7 +97,9 @@ class Superblock {
   std::string GetAuxFsPath() { return std::string(aux_fs_path_); }
   uint32_t GetFinishTreshold() { return finish_treshold_; }
   std::string GetUUID() { return std::string(uuid_); }
-  bool IsGCEnabled() { return flags_ & FLAGS_ENABLE_GC; };
+  bool IsGCEnabled() {
+    return flags_ & FLAGS_ENABLE_GC;
+  }; /* 가비지 컬렉션이 활성화되었는지 여부를 확인합니다.*/
 };
 
 class ZenMetaLog {

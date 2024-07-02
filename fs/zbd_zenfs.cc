@@ -3,7 +3,9 @@
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
-
+/* Zoned Block Device(ZBD)와 관련된 기능을 구현하고 정의하는 파일입니다. ZBD의
+ * 초기화, 읽기, 쓰기, 리셋 등의 작업을 포함하며, ZBD와의 인터페이스를
+ * 제공합니다.*/
 #if !defined(ROCKSDB_LITE) && !defined(OS_WIN)
 
 #include "zbd_zenfs.h"
