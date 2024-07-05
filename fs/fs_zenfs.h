@@ -460,7 +460,7 @@ class ZenFS : public FileSystemWrapper {
   //////////////////////////////////////
   bool IsZoneDevice() { return true; }
   // void ZoneCleaningWorker(bool run_once=false) override;
-  size_t ZoneCleaning(bool forced);
+  void ZoneCleaning(bool forced);
   // int GetMountTime(void) override { return mount_time_.load(); }
   // bool IsZCRunning(void) { return run_gc_worker_; }
   // void ZCLock(void) override { zc_lock_.lock(); }
