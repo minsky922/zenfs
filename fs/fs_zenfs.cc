@@ -415,9 +415,7 @@ void ZenFS::GCWorker() {
     // 총 공간 대비 여유 공간의 비율을 free_percent에 계산
     uint64_t free_percent = (100 * free) / (free + non_free);
     //////////////////
-    if (free_percent < ZONE_CLEANING_KICKING_POINT) {
-      ZoneCleaning(false);
-    } else {
+    if (free_percent < 20) {  // 20% 이하일 때만 ZoneCleaning 실행
       ZoneCleaning(true);
     }
 
@@ -1935,9 +1933,9 @@ IOStatus ZenFS::MigrateExtents(
   for (auto* ext : extents) {
     std::string fname = ext->filename;
     // We only migrate SST file extents
-    if (ends_with(fname, ".sst")) {
-      file_extents[fname].emplace_back(ext);
-    }
+    // if (ends_with(fname, ".sst")) {
+    file_extents[fname].emplace_back(ext);
+    // }
   }
   // 파일 익스텐트 마이그레이션 및 존 재설정
   for (const auto& it : file_extents) {

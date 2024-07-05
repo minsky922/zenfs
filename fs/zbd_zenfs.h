@@ -242,6 +242,8 @@ class ZonedBlockDevice {
 
   IOStatus AllocateIOZone(Env::WriteLifeTimeHint file_lifetime, IOType io_type,
                           Zone **out_zone);
+  void SetZoneAllocationFailed() { zone_allocation_state_ = false; }
+  bool IsZoneAllocationFailed() { return zone_allocation_state_ == false; }
   IOStatus AllocateMetaZone(Zone **out_meta_zone);
 
   uint64_t GetFreeSpace();
@@ -288,6 +290,14 @@ class ZonedBlockDevice {
     zc_timelapse_.push_back({zc_z, s, e, forced});
   }
   void AddTimeLapse(int T);
+
+  uint64_t CalculateCapacityRemain() {
+    uint64_t ret = 0;
+    for (const auto z : io_zones) {
+      ret += z->capacity_;
+    }
+    return ret;
+  }
 
   void LogZoneStats();
   void LogZoneUsage();
