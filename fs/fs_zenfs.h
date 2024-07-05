@@ -152,7 +152,12 @@ class ZenFS : public FileSystemWrapper {
   std::shared_ptr<Logger> GetLogger() { return logger_; }  // 로거 반환
 
   std::unique_ptr<std::thread> gc_worker_ = nullptr;  // 가비지 컬렉션 스레드
+  uint64_t free_percent_ = 100;
   bool run_gc_worker_ = false;  // 가비지 컬렉션 작업 실행 여부
+  std::atomic<int> zc_triggerd_count_{0};
+  std::mutex zc_lock_;
+
+  std::atomic<int> mount_time_{0};
 
   struct ZenFSMetadataWriter : public MetadataWriter {
     ZenFS* zenFS;
@@ -452,7 +457,15 @@ class ZenFS : public FileSystemWrapper {
     return IOStatus::NotSupported(
         "MemoryMappedFileBuffer is not implemented in ZenFS");
   }
-
+  //////////////////////////////////////
+  bool IsZoneDevice() { return true; }
+  // void ZoneCleaningWorker(bool run_once=false) override;
+  size_t ZoneCleaning(bool forced) override;
+  int GetMountTime(void) override { return mount_time_.load(); }
+  bool IsZCRunning(void) { return run_gc_worker_; }
+  void ZCLock(void) override { zc_lock_.lock(); }
+  void ZCUnLock(void) override { zc_lock_.unlock(); }
+  //////////////////////////////////
   void GetZenFSSnapshot(ZenFSSnapshot& snapshot,
                         const ZenFSSnapshotOptions& options);
 

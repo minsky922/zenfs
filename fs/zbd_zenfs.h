@@ -36,6 +36,24 @@ class ZonedBlockDeviceBackend;
 class ZoneSnapshot;
 class ZenFSSnapshotOptions;
 
+#define ZONE_CLEANING_KICKING_POINT (20)
+
+#define KB (1024)
+
+#define MB (1024 * KB)
+
+#define ZENFS_SPARE_ZONES (1)
+
+#define ZENFS_META_ZONES (3)
+
+#define ZENFS_IO_ZONES (40)  // 20GB
+
+#define ZONE_SIZE 512
+
+#define DEVICE_SIZE ((ZENFS_IO_ZONES) * (ZONE_SIZE))
+
+#define ZONE_SIZE_PER_DEVICE_SIZE (100 / (ZENFS_IO_ZONES))
+
 class ZoneList {
  private:
   void *data_;
@@ -147,13 +165,52 @@ class ZonedBlockDevice {
   time_t start_time_;
   std::shared_ptr<Logger> logger_;
   uint32_t finish_threshold_ = 0;
+
+  /* FAR STATS*/
   std::atomic<uint64_t> bytes_written_{0};
   std::atomic<uint64_t> gc_bytes_written_{0};
-
+  std::atomic<bool> force_zc_should_triggered_{false};
+  uint64_t reset_threshold_ = 0;
+  ///
   std::atomic<long> active_io_zones_;
   std::atomic<long> open_io_zones_;
+  ///
+  std::atomic<size_t> reset_count_{0};
+  std::atomic<uint64_t> wasted_wp_{0};
+  std::atomic<clock_t> runtime_reset_reset_latency_{0};
+  std::atomic<clock_t> runtime_reset_latency_{0};
+
+  std::atomic<uint64_t> device_free_space_;
+
+  std::mutex compaction_refused_lock_;
+  std::atomic<int> compaction_refused_by_zone_interface_{0};
+  std::set<int> compaction_blocked_at_;
+  std::vector<int> compaction_blocked_at_amount_;
+
+  /* time_lapse */
+  int zc_io_block_ = 0;
+  clock_t ZBD_mount_time_;
+  bool zone_allocation_state_ = true;
+  struct ZCStat {
+    size_t zc_z;
+    int s;
+    int e;
+    bool forced;
+  };
+  std::vector<ZCStat> zc_timelapse_;
+  std::vector<uint64_t> zc_copied_timelapse_;
+
+  std::mutex io_lock_;
+  struct IOBlockStat {
+    pid_t tid;
+    int s;
+    int e;
+  };
+  std::vector<IOBlockStat> io_block_timelapse_;
+  int io_blocked_thread_n_ = 0;
+
   /* Protects zone_resuorces_  condition variable, used
-     for notifying changes in open_io_zones_ */
+   for notifying changes in open_io_zones_ */
   std::mutex zone_resources_mtx_;
   std::condition_variable zone_resources_;
   std::mutex zone_deferred_status_mutex_;
@@ -191,11 +248,46 @@ class ZonedBlockDevice {
   bool PerformZoneCompaction();
   uint64_t GetUsedSpace();
   uint64_t GetReclaimableSpace();
-
+  ////////////////////////////////////
+  uint64_t GetFreePercent();
+  //////////////////////////////////////
   std::string GetFilename();
   uint32_t GetBlockSize();
 
   IOStatus ResetUnusedIOZones();
+  //////////////////////////////////////////////////
+  void AddIOBlockedTimeLapse(int s, int e) {
+    // std::lock_guard는 범위 기반 잠금을 제공하여, 이 객체가 존재하는 동안
+    // 뮤텍스가 잠기고 객체가 소멸될 때 자동으로 잠금이 해제됩니다.
+    std::lock_guard<std::mutex> lg_(io_lock_);
+    io_block_timelapse_.push_back({gettid(), s, e});
+    zc_io_block_ += (e - s);
+  }
+
+  clock_t IOBlockedStartCheckPoint(void) {
+    std::lock_guard<std::mutex> lg_(io_lock_);
+    clock_t ret = clock();
+    io_blocked_thread_n_++;
+    return ret;
+  }
+  void IOBlockedEndCheckPoint(int start) {
+    int end = clock();
+    std::lock_guard<std::mutex> lg_(io_lock_);
+    io_blocked_thread_n_--;
+    io_block_timelapse_.push_back({gettid(), start, -1});
+    if (io_blocked_thread_n_ == 0) {
+      zc_io_block_ += (end - start);
+    }
+    return;
+  }
+  void AddZCTimeLapse(int s, int e, size_t zc_z, bool forced) {
+    if (forced == true) {
+      force_zc_should_triggered_.store(false);
+    }
+    zc_timelapse_.push_back({zc_z, s, e, forced});
+  }
+  void AddTimeLapse(int T);
+
   void LogZoneStats();
   void LogZoneUsage();
   void LogGarbageInfo();

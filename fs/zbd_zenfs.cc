@@ -54,24 +54,26 @@ namespace ROCKSDB_NAMESPACE {
 
 Zone::Zone(ZonedBlockDevice *zbd, ZonedBlockDeviceBackend *zbd_be,
            std::unique_ptr<ZoneList> &zones, unsigned int idx)
-    : zbd_(zbd),
-      zbd_be_(zbd_be),
-      busy_(false),
-      start_(zbd_be->ZoneStart(zones, idx)),
-      max_capacity_(zbd_be->ZoneMaxCapacity(zones, idx)),
-      wp_(zbd_be->ZoneWp(zones, idx)) {
-  lifetime_ = Env::WLTH_NOT_SET;
-  used_capacity_ = 0;
-  capacity_ = 0;
-  if (zbd_be->ZoneIsWritable(zones, idx))
-    capacity_ = max_capacity_ - (wp_ - start_);
+    : zbd_(zbd),        // ZonedBlockDevice 객체의 포인터 초기화
+      zbd_be_(zbd_be),  // ZonedBlockDeviceBackend 객체의 포인터 초기화
+      busy_(false),     // 초기 상태는 busy 아님
+      start_(zbd_be->ZoneStart(zones, idx)),  // 존의 시작 위치 초기화
+      max_capacity_(
+          zbd_be->ZoneMaxCapacity(zones, idx)),  // 존의 최대 용량 초기화
+      wp_(zbd_be->ZoneWp(zones, idx)) {  // 존의 현재 쓰기 포인터 초기화
+  lifetime_ = Env::WLTH_NOT_SET;         // 존의 수명 초기화
+  used_capacity_ = 0;                    // 사용된 용량 초기화
+  capacity_ = 0;                         // 현재 용량 초기화
+  if (zbd_be->ZoneIsWritable(zones, idx))  // 존이 쓰기 가능한 상태인지 확인
+    capacity_ =
+        max_capacity_ - (wp_ - start_);  // 쓰기 가능한 경우 현재 용량 설정
 }
 
 bool Zone::IsUsed() { return (used_capacity_ > 0); }
 uint64_t Zone::GetCapacityLeft() { return capacity_; }
 bool Zone::IsFull() { return (capacity_ == 0); }
 bool Zone::IsEmpty() { return (wp_ == start_); }
-uint64_t Zone::GetZoneNr() { return start_ / zbd_->GetZoneSize(); }
+uint64_t Zone::GetZoneNr() { return start_ / zbd_->GetZoneSize(); }  // 존 넘버
 
 void Zone::EncodeJson(std::ostream &json_stream) {
   json_stream << "{";
@@ -108,7 +110,9 @@ IOStatus Zone::Reset() {
   ////
   return IOStatus::OK();
 }
-
+/* 존을 마무리하고 용량을 0으로 설정하며, 쓰기 포인터를 존의 끝으로
+이동시킵니다. 존이 더 이상 쓰기 작업을 받지 않도록 설정합니다. 일반적으로 데이터
+쓰기가 완료된 후 존을 마무리할 때 사용됩니다.*/
 IOStatus Zone::Finish() {
   assert(IsBusy());
 
@@ -123,6 +127,9 @@ IOStatus Zone::Finish() {
   return IOStatus::OK();
 }
 
+/* 존을 닫습니다. 존이 비어 있지 않거나 가득 차 있지 않을 때만 닫기 작업을
+수행합니다. 일반적으로 존을 더 이상 사용하지 않을 때 호출됩니다. 이는 존이 가득
+찼거나 비어 있지 않은 경우에만 수행됩니다.*/
 IOStatus Zone::Close() {
   assert(IsBusy());
 
@@ -137,6 +144,11 @@ IOStatus Zone::Close() {
   return IOStatus::OK();
 }
 
+/* 주어진 데이터를 존에 추가하는 작업을 수행합니다. 이 함수는 데이터를 쓰기 전에
+ * 존의 용량이 충분한지 확인하고, 데이터 크기가 블록 크기의 배수인지 검증합니다.
+ * 쓰기 작업이 완료되면 쓰기 포인터와 용량을 업데이트하고, 쓰여진 바이트 수를
+ * 기록합니다. 또한, 메트릭 시스템에 쓰기 지연 시간과 처리량을 보고합니다. 모든
+ * 데이터가 성공적으로 쓰여지면 IOStatus::OK()를 반환합니다*/
 IOStatus Zone::Append(char *data, uint32_t size) {
   ZenFSMetricsLatencyGuard guard(zbd_->GetMetrics(), ZENFS_ZONE_WRITE_LATENCY,
                                  Env::Default());
@@ -166,8 +178,8 @@ IOStatus Zone::Append(char *data, uint32_t size) {
   return IOStatus::OK();
 }
 
-/* 존의 사용 플래그를 해제하려고 시도하며, 해제가 실패하면 오류 상태를
- * 반환합니다. 성공적으로 해제되면 IOStatus::OK()를 반환*/
+/* 존의 사용 플래그(busy flag)를 해제하려고 시도하며, 해제가 실패하면 오류
+ * 상태를 반환합니다. 성공적으로 해제되면 IOStatus::OK()를 반환*/
 inline IOStatus Zone::CheckRelease() {
   if (!Release()) {
     assert(false);
@@ -178,6 +190,7 @@ inline IOStatus Zone::CheckRelease() {
   return IOStatus::OK();
 }
 
+/* 주어진 오프셋이 포함된 존을 io_zones 리스트에서 찾아 반환합니다*/
 Zone *ZonedBlockDevice::GetIOZone(uint64_t offset) {
   for (const auto z : io_zones)
     if (z->start_ <= offset && offset < (z->start_ + zbd_be_->GetZoneSize()))
@@ -198,6 +211,16 @@ ZonedBlockDevice::ZonedBlockDevice(std::string path, ZbdBackendType backend,
   }
 }
 
+/* ZonedBlockDevice 객체를 초기화하고 열기 위한 작업을 수행합니다. 함수는 다음
+작업을 수행합니다:
+
+쓰기 열기가 독점적인지 확인합니다.
+디바이스를 엽니다.
+디바이스의 존 수가 최소 요구 사항을 충족하는지 확인합니다.
+메타데이터 존과 I/O 존을 설정합니다.
+시작 시간을 설정합니다.
+
+이 작업을 통해 디바이스가 준비되고, 사용할 수 있는 존이 올바르게 설정됩니다.*/
 IOStatus ZonedBlockDevice::Open(bool readonly, bool exclusive) {
   std::unique_ptr<ZoneList> zone_rep;
   unsigned int max_nr_active_zones;
@@ -292,7 +315,7 @@ uint64_t ZonedBlockDevice::GetFreeSpace() {
     free += z->capacity_;
   }
 
-  std::cout << "######getFreeSpace-test" << std::endl;
+  std::cout << "######getFreeSpace" << std::endl;
 
   return free;
 }
@@ -311,6 +334,12 @@ uint64_t ZonedBlockDevice::GetReclaimableSpace() {
     if (z->IsFull()) reclaimable += (z->max_capacity_ - z->used_capacity_);
   }
   return reclaimable;
+}
+
+uint64_t ZonedBlockDevice::GetFreePercent() {
+  // uint64_t non_free = zbd_->GetUsedSpace() + zbd_->GetReclaimableSpace();
+  uint64_t free = GetFreeSpace();
+  return (100 * free) / io_zones.size() * io_zones[0]->max_capacity_;
 }
 
 void ZonedBlockDevice::LogZoneStats() {
@@ -344,7 +373,10 @@ void ZonedBlockDevice::LogZoneStats() {
 void ZonedBlockDevice::LogZoneUsage() {
   for (const auto z : io_zones) {
     int64_t used = z->used_capacity_;
-
+    printf(
+        "@@@ LogZoneUsage [%d] :  remaining : %lu used : %lu invalid : %lu wp "
+        ": %lu\n",
+        i, z->capacity_, used, z->wp_ - z->start_ - used, z->wp_ - z->start_);
     if (used > 0) {
       Debug(logger_, "Zone 0x%lX used capacity: %ld bytes (%ld MB)\n",
             z->start_, used, used / MB);
@@ -353,52 +385,56 @@ void ZonedBlockDevice::LogZoneUsage() {
 }
 
 void ZonedBlockDevice::LogGarbageInfo() {
-  // Log zone garbage stats vector.
+  // 존 쓰레기 통계 벡터를 로그로 기록합니다.
   //
-  // The values in the vector represents how many zones with target garbage
-  // percent. Garbage percent of each index: [0%, <10%, < 20%, ... <100%, 100%]
-  // For example `[100, 1, 2, 3....]` means 100 zones are empty, 1 zone has less
-  // than 10% garbage, 2 zones have  10% ~ 20% garbage ect.
+  // 벡터의 각 값은 특정 쓰레기 비율을 가진 존의 수를 나타냅니다.
+  // 각 인덱스의 쓰레기 비율: [0%, <10%, <20%, ... <100%, 100%]
+  // 예를 들어, `[100, 1, 2, 3....]`는 100개의 존이 비어 있고,
+  // 1개의 존은 쓰레기 비율이 10% 미만, 2개의 존은 쓰레기 비율이 10% ~ 20%
+  // 사이임을 의미합니다.
   //
-  // We don't need to lock io_zones since we only read data and we don't need
-  // the result to be precise.
-  int zone_gc_stat[12] = {0};
-  for (auto z : io_zones) {
-    if (!z->Acquire()) {
+  // 데이터를 읽기만 하므로 io_zones를 잠글 필요가 없으며, 결과의 정확성을 높일
+  // 필요도 없습니다.
+  int zone_gc_stat[12] = {0};  // 각 쓰레기 비율 구간별 존의 수를 저장하는 배열
+  for (auto z : io_zones) {  // 모든 I/O 존에 대해 반복
+    if (!z->Acquire()) {     // 존이 사용 가능하지 않으면 건너뜀
       continue;
     }
 
-    if (z->IsEmpty()) {
+    if (z->IsEmpty()) {  // 존이 비어 있는 경우
       zone_gc_stat[0]++;
-      z->Release();
+      z->Release();  // 존을 해제
       continue;
     }
 
-    double garbage_rate = 0;
-    if (z->IsFull()) {
+    double garbage_rate = 0;  // 쓰레기 비율 초기화
+    if (z->IsFull()) {        // 존이 가득 찬 경우
       garbage_rate =
           double(z->max_capacity_ - z->used_capacity_) / z->max_capacity_;
-    } else {
+    } else {  // 존이 가득 차지 않은 경우
       garbage_rate =
           double(z->wp_ - z->start_ - z->used_capacity_) / z->max_capacity_;
     }
-    assert(garbage_rate >= 0);
-    int idx = int((garbage_rate + 0.1) * 10);
-    zone_gc_stat[idx]++;
+    assert(garbage_rate >= 0);  // 쓰레기 비율이 0 이상인지 확인
+    int idx = int((garbage_rate + 0.1) * 10);  // 쓰레기 비율을 인덱스로 변환
+    zone_gc_stat[idx]++;  // 해당 쓰레기 비율 구간의 존 수 증가
 
-    z->Release();
+    z->Release();  // 존을 해제
   }
 
-  std::stringstream ss;
+  std::stringstream ss;  // 로그 메시지를 저장할 문자열 스트림
   ss << "Zone Garbage Stats: [";
-  for (int i = 0; i < 12; i++) {
+  for (int i = 0; i < 12; i++) {  // 각 쓰레기 비율 구간의 존 수를 스트림에 추가
     ss << zone_gc_stat[i] << " ";
   }
   ss << "]";
-  Info(logger_, "%s", ss.str().data());
+  Info(logger_, "%s", ss.str().data());  // 로그 메시지를 기록
 }
 
 ZonedBlockDevice::~ZonedBlockDevice() {
+  printf("ZC IO Blocking time : %d, Compaction Refused : %lu\n", zc_io_block_,
+         compaction_blocked_at_amount_.size());
+
   for (const auto z : meta_zones) {
     delete z;
   }

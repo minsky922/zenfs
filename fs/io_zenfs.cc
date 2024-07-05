@@ -606,19 +606,26 @@ IOStatus ZoneFile::SparseAppend(char* sparse_buffer, uint32_t data_size) {
 
   return IOStatus::OK();
 }
-
+/* 주어진 데이터를 블록 정렬된 방식으로 파일 끝에 추가하는 역할을 합니다. 이
+ * 함수는 특정 크기의 데이터를 받아 여러 영역(Zone)에 걸쳐 데이터를 추가하며,
+ * 필요한 경우 새로운 영역을 할당합니다. 주석에 따르면, 입력 데이터와 데이터
+ * 크기가 블록 단위로 정렬되어 있다고 가정합니다*/
 /* Assumes that data and size are block aligned */
 IOStatus ZoneFile::Append(void* data, int data_size) {
-  uint32_t left = data_size;
-  uint32_t wr_size, offset = 0;
-  IOStatus s = IOStatus::OK();
+  uint32_t left = data_size;  // 남은 데이터 크기
+  uint32_t wr_size,
+      offset = 0;  // wr_size: 현재 쓰기 크기, offset: 데이터 오프셋
+  IOStatus s = IOStatus::OK();  // 함수의 반환 상태
 
+  // 활성 영역이 없으면 새로운 영역을 할당
   if (!active_zone_) {
     s = AllocateNewZone();
     if (!s.ok()) return s;
   }
 
+  // 남은 데이터가 있을 때까지 반복
   while (left) {
+    // 활성 영역의 용량이 0이면 새로운 영역을 할당
     if (active_zone_->capacity_ == 0) {
       PushExtent();
 
@@ -631,18 +638,22 @@ IOStatus ZoneFile::Append(void* data, int data_size) {
       if (!s.ok()) return s;
     }
 
+    // 현재 남은 데이터 크기와 활성 영역의 용량 중 작은 값을 선택하여 wr_size에
+    // 저장
     wr_size = left;
     if (wr_size > active_zone_->capacity_) wr_size = active_zone_->capacity_;
 
+    // 데이터를 현재 활성 영역에 추가
     s = active_zone_->Append((char*)data + offset, wr_size);
     if (!s.ok()) return s;
 
+    // 파일 크기를 갱신하고, 남은 데이터 크기와 오프셋을 조정
     file_size_ += wr_size;
     left -= wr_size;
     offset += wr_size;
   }
 
-  return IOStatus::OK();
+  return IOStatus::OK();  // 데이터 추가가 성공적으로 완료되었음을 반환
 }
 
 IOStatus ZoneFile::RecoverSparseExtents(uint64_t start, uint64_t end,
