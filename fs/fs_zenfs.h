@@ -471,9 +471,9 @@ class ZenFS : public FileSystemWrapper {
 
   IOStatus MigrateExtents(const std::vector<ZoneExtentSnapshot*>& extents);
 
-  IOStatus MigrateFileExtents(const std::string& fname,
-                              const std::vector<ZoneExtentSnapshot*>& migra
-                                  te_exts);
+  IOStatus MigrateFileExtents(
+      const std::string& fname,
+      const std::vector<ZoneExtentSnapshot*>& migrate_exts);
 
  private:
   const uint64_t GC_START_LEVEL =
