@@ -138,21 +138,21 @@ class ZenMetaLog {
 };
 
 class ZenFS : public FileSystemWrapper {
-  ZonedBlockDevice* zbd_;
-  std::map<std::string, std::shared_ptr<ZoneFile>> files_;
-  std::mutex files_mtx_;
-  std::shared_ptr<Logger> logger_;
-  std::atomic<uint64_t> next_file_id_;
+  ZonedBlockDevice* zbd_;  // 존 기반 블록 디바이스
+  std::map<std::string, std::shared_ptr<ZoneFile>> files_;  // 파일 맵
+  std::mutex files_mtx_;                // 파일 맵 접근 제어 뮤텍스
+  std::shared_ptr<Logger> logger_;      // 로거 객체
+  std::atomic<uint64_t> next_file_id_;  // 다음 파일 ID
 
-  Zone* cur_meta_zone_ = nullptr;
-  std::unique_ptr<ZenMetaLog> meta_log_;
-  std::mutex metadata_sync_mtx_;
-  std::unique_ptr<Superblock> superblock_;
+  Zone* cur_meta_zone_ = nullptr;         // 현재 메타 존
+  std::unique_ptr<ZenMetaLog> meta_log_;  // 메타 로그 객체
+  std::mutex metadata_sync_mtx_;          // 메타데이터 동기화 뮤텍스
+  std::unique_ptr<Superblock> superblock_;  // 슈퍼블록 객체
 
-  std::shared_ptr<Logger> GetLogger() { return logger_; }
+  std::shared_ptr<Logger> GetLogger() { return logger_; }  // 로거 반환
 
-  std::unique_ptr<std::thread> gc_worker_ = nullptr;
-  bool run_gc_worker_ = false;
+  std::unique_ptr<std::thread> gc_worker_ = nullptr;  // 가비지 컬렉션 스레드
+  bool run_gc_worker_ = false;  // 가비지 컬렉션 작업 실행 여부
 
   struct ZenFSMetadataWriter : public MetadataWriter {
     ZenFS* zenFS;

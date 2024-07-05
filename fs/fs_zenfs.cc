@@ -34,7 +34,10 @@
 #define DEFAULT_ZENV_LOG_PATH "/tmp/"
 
 namespace ROCKSDB_NAMESPACE {
-
+/* Slice 객체에서 슈퍼블록(superblock)을 디코딩하여 데이터를 읽어오는 작업을
+ * 수행합니다. 주어진 입력이 예상된 크기와 일치하는지 확인하고, 다양한 필드를
+ * 추출하여 슈퍼블록 구조체에 저장합니다. 또한, 슈퍼블록의 무결성을 검증하여
+ * 올바른 포맷인지 확인합니다.*/
 Status Superblock::DecodeFrom(Slice* input) {
   if (input->size() != ENCODED_SIZE) {
     return Status::Corruption("ZenFS Superblock",
@@ -72,6 +75,10 @@ Status Superblock::DecodeFrom(Slice* input) {
   return Status::OK();
 }
 
+/*슈퍼블록(superblock) 의 데이터를 주어진 std::string 객체에
+    인코딩하는 작업을 수행합니다 .이는 슈퍼블록의 모든 필드를
+    시리얼라이즈(serialized) 하여 std::string 객체에 저장합니다.이 작업은
+    슈퍼블록의 현재 상태를 저장하거나 전송하기 위해 필요합니다*/
 void Superblock::EncodeTo(std::string* output) {
   sequence_++; /* Ensure that this superblock representation is unique */
   output->clear();
@@ -121,6 +128,7 @@ void Superblock::GetReport(std::string* reportString) {
   reportString->append(zenfs_version);
 }
 
+/* ZonedBlockDevice 객체와 슈퍼블록이 호환되는지 확인하는 작업을 수행*/
 Status Superblock::CompatibleWith(ZonedBlockDevice* zbd) {
   if (block_size_ != zbd->GetBlockSize())
     return Status::Corruption("ZenFS Superblock",
@@ -134,6 +142,11 @@ Status Superblock::CompatibleWith(ZonedBlockDevice* zbd) {
   return Status::OK();
 }
 
+/*주어진 Slice 데이터를 메타 로그에 기록합니다. 물리적 저장 크기를 계산하고,
+ * 메모리를 할당하여 데이터를 준비한 후, CRC32C를 사용하여 오류 검사를
+ * 수행합니다. 준비된 데이터를 존에 추가한 후 메모리를 해제하고 결과 상태를
+ * 반환합니다. 이 과정을 통해 데이터 무결성을 보장하고 안정적으로 저장할 수
+ * 있습니다*/
 IOStatus ZenMetaLog::AddRecord(const Slice& slice) {
   uint32_t record_sz = slice.size();
   const char* data = slice.data();
@@ -169,35 +182,44 @@ IOStatus ZenMetaLog::AddRecord(const Slice& slice) {
   return s;
 }
 
+/*Slice 객체를 사용하여 메타 로그에서 데이터를 읽어오는 작업을 수행합니다.
+ * 함수는 특정 위치에서 데이터를 읽고, 읽기 위치를 업데이트합니다. 또한,
+ * EOF(파일 끝)와 영역 경계를 체크하여 적절한 오류를 반환합니다*/
 IOStatus ZenMetaLog::Read(Slice* slice) {
-  char* data = (char*)slice->data();
-  size_t read = 0;
-  size_t to_read = slice->size();
-  int ret;
+  char* data = (char*)slice->data();  // 읽을 데이터를 저장할 버퍼
+  size_t read = 0;                    // 현재까지 읽은 데이터 크기
+  size_t to_read = slice->size();     // 읽어야 할 전체 데이터 크기
+  int ret;                            // 읽기 작업의 반환값
 
+  // EOF 체크
   if (read_pos_ >= zone_->wp_) {
-    // EOF
     slice->clear();
     return IOStatus::OK();
   }
 
+  // 존 경계 체크
   if ((read_pos_ + to_read) > (zone_->start_ + zone_->max_capacity_)) {
     return IOStatus::IOError("Read across zone");
   }
 
+  // 데이터 읽기
   while (read < to_read) {
     ret = zbd_->Read(data + read, read_pos_, to_read - read, false);
 
-    if (ret == -1 && errno == EINTR) continue;
-    if (ret < 0) return IOStatus::IOError("Read failed");
+    if (ret == -1 && errno == EINTR) continue;  // EINTR 오류가 발생하면 재시도
+    if (ret < 0)
+      return IOStatus::IOError("Read failed");  // 읽기 실패 시 오류 반환
 
-    read += ret;
-    read_pos_ += ret;
+    read += ret;       // 읽은 데이터 크기 업데이트
+    read_pos_ += ret;  // 읽기 위치 업데이트
   }
 
   return IOStatus::OK();
 }
 
+/*메타 로그에서 레코드를 읽어와 주어진 Slice 객체와 std::string 객체에 저장하는
+ * 작업을 수행합니다. 주요 작업 단계는 레코드의 헤더를 읽고, 레코드 크기 및 CRC
+ * 값을 확인한 다음, 데이터를 읽고 CRC 검사를 통해 유효성을 확인하는 것입니다*/
 IOStatus ZenMetaLog::ReadRecord(Slice* record, std::string* scratch) {
   Slice header;
   uint32_t record_sz = 0;
@@ -243,33 +265,44 @@ IOStatus ZenMetaLog::ReadRecord(Slice* record, std::string* scratch) {
   return IOStatus::OK();
 }
 
+/*이 생성자는 ZonedBlockDevice, 보조 파일 시스템(aux_fs), 로거(logger)를 받아
+ * ZenFS 파일 시스템을 초기화하는 역할을 합니다*/
 ZenFS::ZenFS(ZonedBlockDevice* zbd, std::shared_ptr<FileSystem> aux_fs,
              std::shared_ptr<Logger> logger)
     : FileSystemWrapper(aux_fs), zbd_(zbd), logger_(logger) {
+  // ZenFS 초기화 시작
   Info(logger_, "ZenFS initializing");
+
+  // ZenFS 초기화 매개변수 로깅
   Info(logger_, "ZenFS parameters: block device: %s, aux filesystem: %s",
        zbd_->GetFilename().c_str(), target()->Name());
 
-  Info(logger_, "ZenFS initializing");
+  // 다음 파일 ID 초기화
   next_file_id_ = 1;
+
+  // 메타데이터 작성기 초기화
   metadata_writer_.zenFS = this;
 }
 
+/*이 소멸자는 ZenFS 객체가 소멸될 때 호출되며, ZenFS 파일 시스템의 정리 작업을
+ * 수행합니다. 주요 작업은 로깅, 가비지 컬렉션 스레드 종료, 메타 로그 정리, 파일
+ * 맵 정리, ZonedBlockDevice 객체 삭제 등입니다*/
 ZenFS::~ZenFS() {
-  Status s;
-  Info(logger_, "ZenFS shutting down");
-  zbd_->LogZoneUsage();
-  LogFiles();
+  Status s;                              // 상태 변수 초기화
+  Info(logger_, "ZenFS shutting down");  // 종료 메시지 로깅
+  zbd_->LogZoneUsage();                  // 존 사용량 로깅
+  LogFiles();                            // 파일 정보 로깅
 
-  if (gc_worker_) {
-    run_gc_worker_ = false;
-    gc_worker_->join();
+  if (gc_worker_) {          // 가비지 컬렉션 스레드 종료
+    run_gc_worker_ = false;  // 가비지 컬렉션 실행 중지
+    gc_worker_->join();      // 가비지 컬렉션 스레드 종료 대기
   }
 
-  meta_log_.reset(nullptr);
-  ClearFiles();
-  delete zbd_;
+  meta_log_.reset(nullptr);  // 메타 로그 정리
+  ClearFiles();              // 파일 맵 정리
+  delete zbd_;               // ZonedBlockDevice 객체 삭제
 }
+
 /* 이 함수는 백그라운드에서 주기적으로 실행되며,
  여유 공간 비율이 설정된 임계값 이하로 떨어지면 가비지 컬렉션을 트리거합니다.
  스냅샷을 통해 현재 파일 시스템 상태를 확인하고,
@@ -288,8 +321,8 @@ void ZenFS::GCWorker() {
     //////////////////
     ZenFSSnapshot snapshot;
     ZenFSSnapshotOptions options;
-    // 여유 공간 비율이 GC_START_LEVEL보다 크면 루프의 다음 반복으로 넘어갑니다.
-    // 즉, 여유 공간이 충분한 경우 GC를 수행하지 않습니다
+    // 여유 공간 비율이 GC_START_LEVEL(20)보다 크면 루프의 다음 반복으로
+    // 넘어갑니다. 즉, 여유 공간이 충분한 경우 GC를 수행하지 않습니다
     if (free_percent > GC_START_LEVEL) continue;
     /* 스냅샷 옵션을 설정하여 존, 파일, 가비지 정보를 포함하도록 합니다. */
     options.zone_ = 1;

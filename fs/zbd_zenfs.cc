@@ -104,7 +104,7 @@ IOStatus Zone::Reset() {
   wp_ = start_;  // 쓰기 포인터(write pointer)를 존의 시작 위치로 재설정
   lifetime_ = Env::WLTH_NOT_SET;  // 존의 수명(lifetime)을 초기화
   //////
-  std::cout << "#####zone Reset" << std::endl;
+  // std::cout << "#####zone Reset" << std::endl;
   ////
   return IOStatus::OK();
 }
@@ -118,7 +118,7 @@ IOStatus Zone::Finish() {
   capacity_ = 0;
   wp_ = start_ + zbd_->GetZoneSize();
   //////
-  std::cout << "######zone Finish" << std::endl;
+  // std::cout << "######zone Finish" << std::endl;
   ////
   return IOStatus::OK();
 }
@@ -131,7 +131,7 @@ IOStatus Zone::Close() {
     if (ios != IOStatus::OK()) return ios;
   }
   //////
-  std::cout << "######Starting close" << std::endl;
+  // std::cout << "######Starting close" << std::endl;
   ////
 
   return IOStatus::OK();
