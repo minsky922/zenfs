@@ -372,16 +372,19 @@ void ZonedBlockDevice::LogZoneStats() {
 }
 
 void ZonedBlockDevice::LogZoneUsage() {
+  int i = 0;
   for (const auto z : io_zones) {
     int64_t used = z->used_capacity_;
     printf(
-        "@@@ LogZoneUsage [%d] :  remaining : %lu used : %lu invalid : %lu wp "
+        "@@@ LogZoneUsage [%d] :  remaining : %lu used : %lu invalid : %lu wp
+        "
         ": %lu\n",
         i, z->capacity_, used, z->wp_ - z->start_ - used, z->wp_ - z->start_);
     if (used > 0) {
       Debug(logger_, "Zone 0x%lX used capacity: %ld bytes (%ld MB)\n",
             z->start_, used, used / MB);
     }
+    i++;
   }
 }
 
