@@ -307,7 +307,7 @@ ZenFS::~ZenFS() {
   delete zbd_;               // ZonedBlockDevice 객체 삭제
 }
 
-size_t ZenFS::ZoneCleaning(bool forced) {
+void ZenFS::ZoneCleaning(bool forced) {
   // int start = GetMountTime();  // 시작 시간 기록
   auto start_time = std::chrono::system_clock::now();
   auto start_time_t = std::chrono::system_clock::to_time_t(start_time);
@@ -395,7 +395,7 @@ size_t ZenFS::ZoneCleaning(bool forced) {
     // //                        forced);  // 시간 경과 기록
     // // }
     zc_lock_.unlock();  // 락 해제
-    return migrate_zones_start.size() + all_inval_zone_n;
+    // return migrate_zones_start.size() + all_inval_zone_n;
   }
 }
 
