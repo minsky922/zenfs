@@ -12,6 +12,7 @@
 ///
 #include <chrono>
 #include <ctime>
+#include <iostream>
 ///
 #include <dirent.h>
 #include <errno.h>
@@ -307,8 +308,12 @@ ZenFS::~ZenFS() {
 }
 
 size_t ZenFS::ZoneCleaning(bool forced) {
-  int start = GetMountTime();  // 시작 시간 기록
-  zc_lock_.lock();             // 락을 걸어 동시 접근 방지
+  // int start = GetMountTime();  // 시작 시간 기록
+  auto start_time = std::chrono::system_clock::now();
+  auto start_time_t = std::chrono::system_clock::to_time_t(start_time);
+  std::cout << "ZoneCleaning started at: " << std::ctime(&start_time_t)
+            << std::endl;
+  zc_lock_.lock();  // 락을 걸어 동시 접근 방지
 
   ZenFSSnapshot snapshot;
   ZenFSSnapshotOptions options;
@@ -380,9 +385,9 @@ size_t ZenFS::ZoneCleaning(bool forced) {
     auto end_time_t = std::chrono::system_clock::to_time_t(end_time);
     std::cout << "ZoneCleaning ended at: " << std::ctime(&end_time_t)
               << std::endl;
-    zbd_->AddZCTimeLapse(start_time_t, end_time_t,
-                         migrate_zones_start.size() + all_inval_zone_n,
-                         forced);  // 시간 경과 기록
+    // zbd_->AddZCTimeLapse(start_time_t, end_time_t,
+    //                      migrate_zones_start.size() + all_inval_zone_n,
+    //                      forced);  // 시간 경과 기록
 
     //   int end = GetMountTime();  // 종료 시간 기록
     // //   zbd_->AddZCTimeLapse(start, end,
@@ -412,7 +417,7 @@ void ZenFS::GCWorker() {
     //////////////////
     if (free_percent < ZONE_CLEANING_KICKING_POINT) {
       ZoneCleaning(false);
-    } else if (zbd_->ShouldForceZCTriggered()) {
+    } else {
       ZoneCleaning(true);
     }
 

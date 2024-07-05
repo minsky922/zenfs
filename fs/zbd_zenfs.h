@@ -19,6 +19,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
+#include <set>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -184,7 +185,7 @@ class ZonedBlockDevice {
 
   std::mutex compaction_refused_lock_;
   std::atomic<int> compaction_refused_by_zone_interface_{0};
-  std::set<int> compaction_blocked_at_;
+  // std::set<int> compaction_blocked_at_;
   std::vector<int> compaction_blocked_at_amount_;
 
   /* time_lapse */
