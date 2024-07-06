@@ -494,8 +494,10 @@ IOStatus ZoneFile::AllocateNewZone() {
       zbd_->ResetUnusedIOZones();
       usleep(1000 * 1000);  // 1초 대기
       s = zbd_->AllocateIOZone(lifetime_, io_type_, &zone);
-      uint64_t z = zbd_->CalculateCapacityRemain std::cout
-                   << "AllocateNewZone: CalculateCapacityRemain: " << z << "\n";
+      // uint64_t z = zbd_->CalculateCapacityRemain std::cout
+      //              << "AllocateNewZone: CalculateCapacityRemain: " << z <<
+      //              "\n";
+      std::cout << "@@@AllocateIOZone: " << zone << "\n";
       if (zone != nullptr) {
         break;
       }
