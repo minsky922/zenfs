@@ -299,6 +299,29 @@ class ZonedBlockDevice {
     return ret;
   }
 
+  uint64_t CalculateFreePercent(void) {
+    uint64_t device_size = (uint64_t)ZENFS_IO_ZONES * (uint64_t)ZONE_SIZE;
+    uint64_t d_free_space = device_size;
+    uint64_t writed = 0;
+    for (const auto z : io_zones) {
+      if (z->IsBusy()) {
+        d_free_space -= (uint64_t)ZONE_SIZE;
+      } else {
+        // uint64_t wp_mb=(z->wp)>>20
+        // d_free_space -=(uint64_t)( z->wp_- z->start_ ) >>20 ;
+        writed += z->wp_ - z->start_;
+      }
+    }
+
+    // printf("df1 %ld\n",d_free_space);
+    d_free_space -= (writed >> 20);
+    // printf("df 2%ld\n",d_free_space);
+    device_free_space_.store(d_free_space);
+    cur_free_percent_ = (d_free_space * 100) / device_size;
+    // CalculateResetThreshold();
+    return cur_free_percent_;
+  }
+
   void LogZoneStats();
   void LogZoneUsage();
   void LogGarbageInfo();

@@ -304,6 +304,9 @@ IOStatus ZonedBlockDevice::Open(bool readonly, bool exclusive) {
       }
     }
   }
+  uint64_t device_free_space = (ZENFS_IO_ZONES) * (ZONE_SIZE);
+  printf("device free space : %ld\n", device_free_space);
+  device_free_space_.store(device_free_space);
 
   start_time_ = time(NULL);
 
