@@ -78,6 +78,7 @@ class ZoneFile {
 
   std::mutex writer_mtx_;
   std::atomic<int> readers_{0};
+  FileSystemWrapper* zenfs_;
 
  public:
   static const int SPARSE_HEADER_SIZE = 8;

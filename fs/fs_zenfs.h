@@ -463,8 +463,8 @@ class ZenFS : public FileSystemWrapper {
   void ZoneCleaning(bool forced);
   // int GetMountTime(void) override { return mount_time_.load(); }
   // bool IsZCRunning(void) { return run_gc_worker_; }
-  // void ZCLock(void) override { zc_lock_.lock(); }
-  // void ZCUnLock(void) override { zc_lock_.unlock(); }
+  void ZCLock(void) override { zc_lock_.lock(); }
+  void ZCUnLock(void) override { zc_lock_.unlock(); }
   //////////////////////////////////
   void GetZenFSSnapshot(ZenFSSnapshot& snapshot,
                         const ZenFSSnapshotOptions& options);
