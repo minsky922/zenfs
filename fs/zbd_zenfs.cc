@@ -316,7 +316,7 @@ uint64_t ZonedBlockDevice::GetFreeSpace() {
     free += z->capacity_;
   }
 
-  std::cout << "######getFreeSpace" << std::endl;
+  std::cout << "######getFreeSpace" << "\n";
 
   return free;
 }
