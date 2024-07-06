@@ -408,12 +408,14 @@ void ZenFS::GCWorker() {
   while (run_gc_worker_) {
     usleep(100 * 1000);
     /* 여유 공간 계산*/
+    printf("#######GCWorker start");
     // 사용된 공간과 회수 가능한 공간을 더한 값을 non_free에 저장
     uint64_t non_free = zbd_->GetUsedSpace() + zbd_->GetReclaimableSpace();
     // 여유 공간을 free에 저장
     uint64_t free = zbd_->GetFreeSpace();
     // 총 공간 대비 여유 공간의 비율을 free_percent에 계산
     uint64_t free_percent = (100 * free) / (free + non_free);
+    std::cout << "GCWorker : free_percent : " << free_percent;
     //////////////////
     if (free_percent < 20) {  // 20% 이하일 때만 ZoneCleaning 실행
       ZoneCleaning(true);
