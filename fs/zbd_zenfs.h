@@ -223,6 +223,9 @@ class ZonedBlockDevice {
 
   unsigned int max_nr_active_io_zones_;
   unsigned int max_nr_open_io_zones_;
+  //
+  uint64_t cur_free_percent_ = 100;
+  //
 
   std::shared_ptr<ZenFSMetrics> metrics_;
 
