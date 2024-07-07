@@ -501,8 +501,8 @@ IOStatus ZoneFile::AllocateNewZone() {
       // uint64_t z = zbd_->CalculateCapacityRemain std::cout
       //              << "AllocateNewZone: CalculateCapacityRemain: " << z <<
       //              "\n";
-      zenfs_->ZCLock();
       std::cout << "@@@AllocateIOZone: " << zone << "\n";
+      zenfs_->ZCLock();
       if (zone != nullptr) {
         break;
       }
