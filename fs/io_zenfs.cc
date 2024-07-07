@@ -240,7 +240,7 @@ Status ZoneFile::MergeUpdate(std::shared_ptr<ZoneFile> update, bool replace) {
 }
 
 ZoneFile::ZoneFile(ZonedBlockDevice* zbd, uint64_t file_id,
-                   MetadataWriter* metadata_writer)
+                   MetadataWriter* metadata_writer, FileSystemWrapper* zenfs)
     : zbd_(zbd),
       active_zone_(NULL),
       extent_start_(NO_EXTENT),
@@ -251,7 +251,8 @@ ZoneFile::ZoneFile(ZonedBlockDevice* zbd, uint64_t file_id,
       file_id_(file_id),
       nr_synced_extents_(0),
       m_time_(0),
-      metadata_writer_(metadata_writer) {}
+      metadata_writer_(metadata_writer){},
+      zenfs_(zenfs) {}  ///
 
 std::string ZoneFile::GetFilename() { return linkfiles_[0]; }
 time_t ZoneFile::GetFileModificationTime() { return m_time_; }

@@ -84,7 +84,7 @@ class ZoneFile {
   static const int SPARSE_HEADER_SIZE = 8;
 
   explicit ZoneFile(ZonedBlockDevice* zbd, uint64_t file_id_,
-                    MetadataWriter* metadata_writer);
+                    MetadataWriter* metadata_writer, FileSystemWrapper* zenfs);
 
   virtual ~ZoneFile();
 

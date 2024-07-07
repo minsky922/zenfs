@@ -379,7 +379,6 @@ void ZenFS::ZoneCleaning(bool forced) {
     s = MigrateExtents(migrate_exts);  // 익스텐트 마이그레이션
     zc_triggerd_count_.fetch_add(1);
     if (!s.ok()) {
-      std::cout << "ZoneCleaning failed: ";
       Error(logger_, "Garbage collection failed");
     }
     // 종료 시간 기록
@@ -1675,6 +1674,8 @@ Status ZenFS::Mount(bool readonly) {
   return Status::OK();
 }
 
+/* ZenFS 파일 시스템을 초기화하고, 메타 데이터 존을 설정하며, 슈퍼블록을
+ * 기록하여 파일 시스템을 사용할 준비를 합니다*/
 Status ZenFS::MkFS(std::string aux_fs_p, uint32_t finish_threshold,
                    bool enable_gc) {
   std::vector<Zone*> metazones = zbd_->GetMetaZones();
@@ -1738,6 +1739,10 @@ Status ZenFS::MkFS(std::string aux_fs_p, uint32_t finish_threshold,
   return Status::OK();
 }
 
+/*ZenFS에서 관리하는 모든 파일의 이름과 해당 파일의 쓰기 수명 힌트를 맵 형태로
+   반환합니다. 이 정보를 통해 파일 시스템 내의 각 파일이 어떤 수명 힌트를 가지고
+   있는지 쉽게 확인할 수 있습니다.
+*/
 std::map<std::string, Env::WriteLifeTimeHint> ZenFS::GetWriteLifeTimeHints() {
   std::map<std::string, Env::WriteLifeTimeHint> hint_map;
 
