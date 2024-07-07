@@ -317,12 +317,13 @@ class ZonedBlockDevice {
       }
     }
 
-    // printf("df1 %ld\n",d_free_space);
+    printf("df1 %ld\n", d_free_space);
     d_free_space -= (writed >> 20);
-    // printf("df 2%ld\n",d_free_space);
+    printf("df 2%ld\n", d_free_space);
     device_free_space_.store(d_free_space);
     cur_free_percent_ = (d_free_space * 100) / device_size;
     // CalculateResetThreshold();
+    printf("cf %ld\n", cur_free_percent_);
     return cur_free_percent_;
   }
 
