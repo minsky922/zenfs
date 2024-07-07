@@ -485,7 +485,7 @@ IOStatus ZoneFile::AllocateNewZone() {
   Zone* zone;
   IOStatus s = zbd_->AllocateIOZone(lifetime_, io_type_, &zone);
   std::cout << "AllocateNewZone: zone" << zone << "\n";
-  if (zone == nul lptr) {
+  if (zone == nullptr) {
     auto start_time = std::chrono::system_clock::now();  // 시작 시간 기록
     auto start_time_t = std::chrono::system_clock::to_time_t(start_time);
     std::cout << "Zone allocation started at: " << std::ctime(&start_time_t);
