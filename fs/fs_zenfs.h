@@ -20,6 +20,7 @@ namespace fs = std::filesystem;
 
 #include "io_zenfs.h"
 #include "metrics.h"
+#include "rocksdb/db.h"
 #include "rocksdb/env.h"
 #include "rocksdb/file_system.h"
 #include "rocksdb/status.h"

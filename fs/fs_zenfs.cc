@@ -1339,7 +1339,8 @@ void ZenFS::EncodeJson(std::ostream& json_stream) {
 }
 
 Status ZenFS::DecodeFileUpdateFrom(Slice* slice, bool replace) {
-  std::shared_ptr<ZoneFile> update(new ZoneFile(zbd_, 0, &metadata_writer_));
+  std::shared_ptr<ZoneFile> update(
+      new ZoneFile(zbd_, 0, &metadata_writer_, this));
   uint64_t id;
   Status s;
 
@@ -1386,7 +1387,7 @@ Status ZenFS::DecodeSnapshotFrom(Slice* input) {
 
   while (GetLengthPrefixedSlice(input, &slice)) {
     std::shared_ptr<ZoneFile> zoneFile(
-        new ZoneFile(zbd_, 0, &metadata_writer_));
+        new ZoneFile(zbd_, 0, &metadata_writer_, this));
     Status s = zoneFile->DecodeFrom(&slice);
     if (!s.ok()) return s;
 

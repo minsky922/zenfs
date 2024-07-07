@@ -27,6 +27,8 @@
 #include <vector>
 
 #include "rocksdb/env.h"
+#include "rocksdb/file_system.h"
+#include "rocksdb/status.h"
 #include "util/coding.h"
 
 namespace ROCKSDB_NAMESPACE {
