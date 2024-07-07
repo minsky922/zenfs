@@ -1020,8 +1020,8 @@ IOStatus ZenFS::OpenWritableFile(const std::string& filename,
       resetIOZones = true;
     }
 
-    zoneFile =
-        std::make_shared<ZoneFile>(zbd_, next_file_id_++, &metadata_writer_);
+    zoneFile = std::make_shared<ZoneFile>(zbd_, next_file_id_++,
+                                          &metadata_writer_, this);
     zoneFile->SetFileModificationTime(time(0));
     zoneFile->AddLinkName(fname);
 
