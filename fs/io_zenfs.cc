@@ -253,7 +253,7 @@ ZoneFile::ZoneFile(ZonedBlockDevice* zbd, uint64_t file_id,
       file_id_(file_id),
       nr_synced_extents_(0),
       m_time_(0),
-      metadata_writer_(metadata_writer){},
+      metadata_writer_(metadata_writer),
       zenfs_(zenfs) {}  ///
 
 std::string ZoneFile::GetFilename() { return linkfiles_[0]; }
