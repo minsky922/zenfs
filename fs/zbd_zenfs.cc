@@ -794,7 +794,7 @@ IOStatus ZonedBlockDevice::AllocateIOZone(Env::WriteLifeTimeHint file_lifetime,
   int new_zone = 0;
   IOStatus s;
   std::cout << "@@@ AllocateIOZone - life_time " << file_lifetime
-            << "io_type: " << io_type << "zone: " << out_zone << "\n";
+            << "zone: " << out_zone << "\n";
 
   auto tag = ZENFS_WAL_IO_ALLOC_LATENCY;
   if (io_type != IOType::kWAL) {
