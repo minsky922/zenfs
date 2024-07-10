@@ -848,12 +848,13 @@ IOStatus ZonedBlockDevice::TakeMigrateZone(Zone **out_zone,
 
 IOStatus ZonedBlockDevice::AllocateIOZone(Env::WriteLifeTimeHint file_lifetime,
                                           IOType io_type, Zone **out_zone) {
-  IOStatus s;
-  s = ResetUnusedIOZones();
+  // IOStatus s;
+  // s = ResetUnusedIOZones();
   Zone *allocated_zone = nullptr;
   unsigned int best_diff = LIFETIME_DIFF_NOT_GOOD;
   int new_zone = 0;
-  // IOStatus s;
+  IOStatus s;
+
   std::cout << "@@@ zbd::AllocateIOZone - life_time: " << file_lifetime
             << "// out_zone: " << out_zone << "\n";
 
@@ -890,6 +891,9 @@ IOStatus ZonedBlockDevice::AllocateIOZone(Env::WriteLifeTimeHint file_lifetime,
   if (!s.ok()) {
     PutOpenIOZoneToken();
     return s;
+  }
+  if (allocated_zone == nullptr) {
+    printf("GetBestOpenZone return nullptr\n");
   }
 
   // Holding allocated_zone if != nullptr
@@ -929,6 +933,11 @@ IOStatus ZonedBlockDevice::AllocateIOZone(Env::WriteLifeTimeHint file_lifetime,
       }
 
       s = AllocateEmptyZone(&allocated_zone);
+      //
+      if (s.ok() && allocated_zone == nullptr) {
+        s = GetAnyLargestRemainingZone(&allocated_zone);
+      }
+      //
       if (!s.ok()) {
         PutActiveIOZoneToken();
         PutOpenIOZoneToken();
