@@ -525,6 +525,7 @@ IOStatus ZoneFile::AllocateNewZone() {
     zbd_->AddIOBlockedTimeLapse(start, end);
   }
   if (!s.ok()) {
+    std::cout << "zf::allocatenewzone=>!s.ok(): " << s;
     return s;
   }
 

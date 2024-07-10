@@ -772,12 +772,40 @@ IOStatus ZonedBlockDevice::TakeMigrateZone(Zone **out_zone,
                                            uint32_t min_capacity) {
   std::unique_lock<std::mutex> lock(migrate_zone_mtx_);
   migrate_resource_.wait(lock, [this] { return !migrating_; });
-
+  IOStatus s;
   migrating_ = true;
 
   unsigned int best_diff = LIFETIME_DIFF_NOT_GOOD;
-  auto s =
-      GetBestOpenZoneMatch(file_lifetime, &best_diff, out_zone, min_capacity);
+  // auto s =
+  //     GetBestOpenZoneMatch(file_lifetime, &best_diff, out_zone,
+  //     min_capacity);
+  // if (s.ok() && (*out_zone) != nullptr) {
+  //   Info(logger_, "TakeMigrateZone: %lu", (*out_zone)->start_);
+  // } else {
+  //   migrating_ = false;
+  // }
+
+  // return s;
+  for (int i = 0; i < 2; i++) {
+    s = GetBestOpenZoneMatch(file_lifetime, &best_diff, out_zone, min_capacity);
+
+    if (s.ok() && (*out_zone) != nullptr) {
+      Info(logger_, "TakeMigrateZone: %lu", (*out_zone)->start_);
+      break;
+    } else {
+      s = GetAnyLargestRemainingZone(out_zone, min_capacity);
+    }
+
+    if (s.ok() && (*out_zone) != nullptr) {
+      Info(logger_, "TakeMigrateZone: %lu", (*out_zone)->start_);
+      break;
+    }
+    s = ResetUnusedIOZones();
+    if (!s.ok()) {
+      return s;
+    }
+  }
+
   if (s.ok() && (*out_zone) != nullptr) {
     Info(logger_, "TakeMigrateZone: %lu", (*out_zone)->start_);
   } else {
