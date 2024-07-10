@@ -789,12 +789,14 @@ IOStatus ZonedBlockDevice::TakeMigrateZone(Zone **out_zone,
 
 IOStatus ZonedBlockDevice::AllocateIOZone(Env::WriteLifeTimeHint file_lifetime,
                                           IOType io_type, Zone **out_zone) {
+  IOStatus s;
+  s = ResetUnusedIOZones();
   Zone *allocated_zone = nullptr;
   unsigned int best_diff = LIFETIME_DIFF_NOT_GOOD;
   int new_zone = 0;
-  IOStatus s;
-  std::cout << "@@@ AllocateIOZone - life_time " << file_lifetime
-            << "zone: " << out_zone << "\n";
+  // IOStatus s;
+  std::cout << "@@@ zbd::AllocateIOZone - life_time: " << file_lifetime
+            << "// out_zone: " << out_zone << "\n";
 
   auto tag = ZENFS_WAL_IO_ALLOC_LATENCY;
   if (io_type != IOType::kWAL) {
