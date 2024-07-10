@@ -663,6 +663,37 @@ IOStatus ZonedBlockDevice::FinishCheapestIOZone() {
   return s;
 }
 
+IOStatus ZonedBlockDevice::GetAnyLargestRemainingZone(Zone **zone_out,
+                                                      uint32_t min_capacity) {
+  IOStatus s = IOStatus::OK();
+  Zone *allocated_zone = nullptr;
+
+  for (const auto z : io_zones) {
+    if (!z->Acquire()) {
+      continue;
+    }
+    if (z->capacity_ > min_capacity) {
+      if (allocated_zone) {
+        s = allocated_zone->CheckRelease();
+        if (!s.ok()) {
+          return s;
+        }
+      }
+      allocated_zone = z;
+      min_capacity = z->capacity_;
+      continue;
+    }
+
+    s = z->CheckRelease();
+    if (!s.ok()) {
+      return s;
+    }
+  }
+
+  *zone_out = allocated_zone;
+  return s;
+}
+
 IOStatus ZonedBlockDevice::GetBestOpenZoneMatch(
     Env::WriteLifeTimeHint file_lifetime, unsigned int *best_diff_out,
     Zone **zone_out, uint32_t min_capacity) {
