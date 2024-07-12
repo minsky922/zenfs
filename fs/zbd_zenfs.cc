@@ -456,8 +456,40 @@ void ZonedBlockDevice::LogGarbageInfo() {
 }
 
 ZonedBlockDevice::~ZonedBlockDevice() {
+  size_t rc = reset_count_.load();
+  uint64_t wwp = wasted_wp_.load() / (1 << 20);
+  uint64_t R_wp;
+  if (rc == 0) {
+    R_wp = 100;
+  } else {
+    R_wp = (ZONE_SIZE * 100 - wwp * 100 / (rc)) / ZONE_SIZE;
+  }
+  printf("============================================================\n");
+  printf("FAR STAT 1 :: WWP (MB) : %lu, R_wp : %lu\n",
+         wasted_wp_.load() / (1 << 20), R_wp);
   printf("ZC IO Blocking time : %d, Compaction Refused : %lu\n", zc_io_block_,
          compaction_blocked_at_amount_.size());
+
+  printf("============================================================\n");
+  uint64_t total_copied = 0;
+  size_t rc_zc = 0;
+  for (size_t i = 0;
+       i < zc_timelapse_.size() && i < zc_copied_timelapse_.size(); i++) {
+    bool forced = zc_timelapse_[i].forced;
+    size_t zc_z = zc_timelapse_[i].zc_z;
+    int s = zc_timelapse_[i].s;
+    int e = zc_timelapse_[i].e;
+    printf("[%lu] :: %d ~ %d, %ld (MB), Reclaimed Zone : %lu [%s]\n", i + 1, s,
+           e, (zc_copied_timelapse_[i]) / (1 << 20), zc_z,
+           forced ? "FORCED" : " ");
+    total_copied += zc_copied_timelapse_[i];
+    rc_zc += zc_z;
+  }
+  printf("Total ZC Copied (MB) :: %lu, Recaimed by ZC :: %lu \n",
+         total_copied / (1 << 20), rc_zc);
+  printf("============================================================\n\n");
+  printf("FAR STAT  :: Reset Count (R+ZC) : %ld+%ld=%ld\n", rc - rc_zc, rc_zc,
+         rc);
 
   for (const auto z : meta_zones) {
     delete z;

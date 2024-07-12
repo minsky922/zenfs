@@ -336,8 +336,10 @@ void ZenFS::BackgroundStatTimeLapse() {
 
 void ZenFS::ZoneCleaning(bool forced) {
   // int start = GetMountTime();  // 시작 시간 기록
+  uint64_t zone_size = zbd_->GetZoneSize();
   size_t should_be_copied = 0;
-
+  auto start_chrono =
+      std::chrono::high_resolution_clock::now();  // valid data copy time
   auto start_time = std::chrono::system_clock::now();
   auto start_time_t = std::chrono::system_clock::to_time_t(start_time);
   std::cout << "ZoneCleaning started at: " << std::ctime(&start_time_t)
@@ -390,7 +392,7 @@ void ZenFS::ZoneCleaning(bool forced) {
 
   if (forced) {
     // kicking_point_z += (10) / (ZONE_SIZE_PER_DEVICE_SIZE);
-    reclaimed_zone_n += 1
+    reclaimed_zone_n += 1;
   }
 
   // 청소할 존 수 계산
@@ -444,11 +446,16 @@ void ZenFS::ZoneCleaning(bool forced) {
                          migrate_zones_start.size() + all_inval_zone_n,
                          forced);  // 시간 경과 기록
 
-    //   int end = GetMountTime();  // 종료 시간 기록
-    // //   zbd_->AddZCTimeLapse(start, end,
-    // //                        migrate_zones_start.size() + all_inval_zone_n,
-    // //                        forced);  // 시간 경과 기록
-    // // }
+    if (should_be_copied > 0) {
+      auto elapsed = std::chrono::high_resolution_clock::now() - start_chrono;
+      long long microseconds =
+          std::chrono::duration_cast<std::chrono::microseconds>(elapsed)
+              .count();
+      zbd_->AddZCTimeLapse(start_time_t, end_time_t, microseconds,
+                           migrate_zones_start.size(), should_be_copied,
+                           forced);
+    }
+
     zc_lock_.unlock();  // 락 해제
     // return migrate_zones_start.size() + all_inval_zone_n;
   }

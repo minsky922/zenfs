@@ -211,6 +211,8 @@ class ZonedBlockDevice {
     size_t zc_z;
     int s;
     int e;
+    long long us;
+    size_t copied;
     bool forced;
   };
   std::vector<ZCStat> zc_timelapse_;
@@ -326,7 +328,7 @@ class ZonedBlockDevice {
     if (forced == true) {
       force_zc_should_triggered_.store(false);
     }
-    zc_timelapse_.push_back({zc_z, s, e, forced});
+    zc_timelapse_.push_back({zc_z, s, e, us, copied, forced});
   }
   void AddTimeLapse(int T);
 
