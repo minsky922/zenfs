@@ -436,7 +436,7 @@ void ZenFS::GCWorker() {
   while (run_gc_worker_) {
     usleep(100 * 1000);
     /* 여유 공간 계산*/
-    printf("#######GCWorker start\n");
+    // printf("#######GCWorker start\n");
     // // 사용된 공간과 회수 가능한 공간을 더한 값을 non_free에 저장
     // uint64_t non_free = zbd_->GetUsedSpace() + zbd_->GetReclaimableSpace();
     // // 여유 공간을 free에 저장

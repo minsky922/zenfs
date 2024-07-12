@@ -282,7 +282,7 @@ IOStatus ZonedBlockDevice::Open(bool readonly, bool exclusive) {
   active_io_zones_ = 0;
   open_io_zones_ = 0;
   // uint64_t device_io_capacity = 85899345920;  // 80GB
-  uint64_t device_io_capacity = 32212254720;  // 30GB
+  uint64_t device_io_capacity = 10737418240;  // 10GB
   for (; i < zone_rep->ZoneCount() &&
          (io_zones.size() * zbd_be_->GetZoneSize()) < (device_io_capacity);
        i++) {
@@ -876,8 +876,8 @@ IOStatus ZonedBlockDevice::AllocateIOZone(Env::WriteLifeTimeHint file_lifetime,
   int new_zone = 0;
   IOStatus s;
 
-  std::cout << "@@@ zbd::AllocateIOZone - life_time: " << file_lifetime
-            << "// out_zone: " << out_zone << "\n";
+  // std::cout << "@@@ zbd::AllocateIOZone - life_time: " << file_lifetime
+  //           << "// out_zone: " << out_zone << "\n";
 
   auto tag = ZENFS_WAL_IO_ALLOC_LATENCY;
   if (io_type != IOType::kWAL) {
