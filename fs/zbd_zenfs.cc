@@ -258,8 +258,8 @@ IOStatus ZonedBlockDevice::Open(bool readonly, bool exclusive) {
   Info(logger_, "Zone block device nr zones: %u max active: %u max open: %u \n",
        zbd_be_->GetNrZones(), max_nr_active_zones, max_nr_open_zones);
   //
-  std::cout << "max_nr_active_zones: " << max_nr_active_zones << std::endl;
-  std::cout << "max_nr_open_zones: " << max_nr_open_zones << std::endl;
+  printf("Zone block device nr zones: %u max active: %u max open: %u \n",
+         zbd_be_->GetNrZones(), max_nr_active_zones, max_nr_open_zones);
   //
   zone_rep = zbd_be_->ListZones();
   if (zone_rep == nullptr || zone_rep->ZoneCount() != zbd_be_->GetNrZones()) {
@@ -292,6 +292,7 @@ IOStatus ZonedBlockDevice::Open(bool readonly, bool exclusive) {
                                       std::to_string(newZone->GetZoneNr()));
         }
         io_zones.push_back(newZone);
+        printf("io zone at %ld\n", i);
         if (zbd_be_->ZoneIsActive(zone_rep, i)) {
           active_io_zones_++;
           if (zbd_be_->ZoneIsOpen(zone_rep, i)) {
@@ -327,7 +328,7 @@ uint64_t ZonedBlockDevice::GetFreeSpace() {
     free += z->capacity_;
   }
 
-  std::cout << "######getFreeSpace" << "\n";
+  // std::cout << "######getFreeSpace" << "\n";
 
   return free;
 }
