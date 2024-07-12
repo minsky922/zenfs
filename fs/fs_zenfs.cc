@@ -413,7 +413,7 @@ void ZenFS::ZoneCleaning(bool forced) {
   //     break;
   //   }
   // }
-  std::cout << "ZoneCleaning::recl " << "\n";
+  std::cout << "ZoneCleaning::reclaimed_zone_n: " << reclaimed_zone_n << "\n";
   // // 청소 대상 존 선택
   // for (size_t i = 0; i < reclaimed_zone_n && i < victim_candidate.size();
   // i++) {
