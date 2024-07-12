@@ -489,8 +489,8 @@ IOStatus ZoneFile::AllocateNewZone() {
     auto start_time = std::chrono::system_clock::now();  // 시작 시간 기록
     auto start_time_t = std::chrono::system_clock::to_time_t(start_time);
     std::cout << "Zone allocation started at: " << std::ctime(&start_time_t);
-    for (int try_n = 0; try_n < 16; try_n++) {
-      // while (zbd_->CalculateCapacityRemain() > (1 << 20) * 128) {
+    // for (int try_n = 0; try_n < 16; try_n++) {
+    while (zbd_->CalculateCapacityRemain() > (1 << 20) * 128) {
       if (zbd_->IsZoneAllocationFailed()) {
         return IOStatus::NoSpace("Zone allocation failed\n");
       }
@@ -498,7 +498,7 @@ IOStatus ZoneFile::AllocateNewZone() {
       std::cout << "##### ZCLock" << "\n";
       zbd_->ResetUnusedIOZones();
       std::cout << "#### AllocateNewZone-ResetUnusedIoZones" << "\n";
-      usleep(1000 * 1000);  // 1초 대기
+      // usleep(1000 * 1000);  // 1초 대기
       s = zbd_->AllocateIOZone(lifetime_, io_type_, &zone);
       // uint64_t z = zbd_->CalculateCapacityRemain std::cout
       //              << "AllocateNewZone: CalculateCapacityRemain: " << z <<
