@@ -87,6 +87,12 @@ class Zone {
   uint64_t max_capacity_;
   uint64_t wp_;
   Env::WriteLifeTimeHint lifetime_;
+  //
+  uint64_t zidx_;  // not changed
+  uint64_t zone_sz_;
+  uint64_t erase_unit_size_ = 0;
+  uint64_t block_sz_;
+  //
   std::atomic<uint64_t> used_capacity_;
 
   IOStatus Reset();
@@ -172,7 +178,9 @@ class ZonedBlockDevice {
   time_t start_time_;
   std::shared_ptr<Logger> logger_;
   uint32_t finish_threshold_ = 0;
-
+  //
+  uint64_t zone_sz_;
+  //
   /* FAR STATS*/
   std::atomic<uint64_t> bytes_written_{0};
   std::atomic<uint64_t> gc_bytes_written_{0};
