@@ -210,6 +210,7 @@ ZonedBlockDevice::ZonedBlockDevice(std::string path, ZbdBackendType backend,
     zbd_be_ = std::unique_ptr<ZoneFsBackend>(new ZoneFsBackend(path));
     Info(logger_, "New zonefs backing: %s", zbd_be_->GetFilename().c_str());
   }
+  zone_sz_ = zbd_be_->GetZoneSize();
 }
 
 /* ZonedBlockDevice 객체를 초기화하고 열기 위한 작업을 수행합니다. 함수는 다음
@@ -312,6 +313,8 @@ IOStatus ZonedBlockDevice::Open(bool readonly, bool exclusive) {
   // printf("device free space : %ld\n", device_free_space);
   // device_free_space_.store(device_free_space);
 
+  printf("io_zones.size() : %ld\n", io_zones.size());
+  printf("zbd_be_->GetZoneSize(): %ld\n", zbd_be_->GetZoneSize());
   uint64_t device_free_space = io_zones.size() * zbd_be_->GetZoneSize();
   printf("device free space : %ld\n", BYTES_TO_MB(device_free_space));
   printf("zone sz %lu\n", zone_sz_);
