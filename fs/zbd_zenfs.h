@@ -158,7 +158,8 @@ class ZonedBlockDeviceBackend {
   virtual uint64_t ZoneWp(std::unique_ptr<ZoneList> &zones,
                           unsigned int idx) = 0;
   virtual std::string GetFilename() = 0;
-  uint32_t GetBlockSize() { return block_sz_; };
+  // uint32_t GetBlockSize() { return block_sz_; };
+  uint64_t GetBlockSize() { return 4096; };
   uint64_t GetZoneSize() { return zone_sz_; };
   uint32_t GetNrZones() { return nr_zones_; };
   virtual ~ZonedBlockDeviceBackend(){};
@@ -335,7 +336,7 @@ class ZonedBlockDevice {
   printf("df1 %ld\n", d_free_space);
   // d_free_space -= (writed >> 20);
   d_free_space -= BYTES_TO_MB(writed);
-  printf("df 2%ld\n", d_free_space);
+  printf("df2 %ld\n", d_free_space);
   device_free_space_.store(d_free_space);
   cur_free_percent_ = (d_free_space * 100) / device_size;
   // CalculateResetThreshold();
