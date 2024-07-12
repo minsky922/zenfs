@@ -475,12 +475,17 @@ ZonedBlockDevice::~ZonedBlockDevice() {
   printf("============================================================\n");
   uint64_t total_copied = 0;
   size_t rc_zc = 0;
+  int io_blocking_sum = 0;
+  long long io_blocking_ms_sum = 0;
   for (size_t i = 0;
        i < zc_timelapse_.size() && i < zc_copied_timelapse_.size(); i++) {
     bool forced = zc_timelapse_[i].forced;
     size_t zc_z = zc_timelapse_[i].zc_z;
     int s = zc_timelapse_[i].s;
     int e = zc_timelapse_[i].e;
+    long long us = zc_timelapse_[i].us;
+    io_blocking_sum += e - s + 1;
+    io_blocking_ms_sum += us;
     printf("[%lu] :: %d ~ %d, %ld (MB), Reclaimed Zone : %lu [%s]\n", i + 1, s,
            e, (zc_copied_timelapse_[i]) / (1 << 20), zc_z,
            forced ? "FORCED" : " ");
@@ -489,9 +494,17 @@ ZonedBlockDevice::~ZonedBlockDevice() {
   }
   printf("Total ZC Copied (MB) :: %lu, Recaimed by ZC :: %lu \n",
          total_copied / (1 << 20), rc_zc);
-  printf("============================================================\n\n");
   printf("FAR STAT  :: Reset Count (R+ZC) : %ld+%ld=%ld\n", rc - rc_zc, rc_zc,
          rc);
+  for (size_t i = 0; i < io_block_timelapse_.size(); i++) {
+    int s = io_block_timelapse_[i].s;
+    int e = io_block_timelapse_[i].e;
+    pid_t tid = io_block_timelapse_[i].tid;
+    printf("[%lu] :: (%d) %d ~ %d\n", i + 1, tid % 100, s, e);
+  }
+
+  printf("TOTAL I/O BLOKCING TIME %d\n", io_blocking_sum);
+  printf("TOTAL I/O BLOCKING TIME(ms) %llu\n", io_blocking_ms_sum);
 
   for (const auto z : meta_zones) {
     delete z;
