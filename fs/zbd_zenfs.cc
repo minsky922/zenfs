@@ -514,6 +514,11 @@ IOStatus ZonedBlockDevice::AllocateMetaZone(Zone **out_meta_zone) {
   Error(logger_, "Out of metadata zones, we should go to read only now.");
   return IOStatus::NoSpace("Out of metadata zones");
 }
+
+void ZonedBlockDevice::AddTimeLapse(int T) {
+  far_stats_.emplace_back(cur_free_percent_, reset_count_.load(),
+                          wasted_wp_.load() / (1 << 20), T, reset_threshold_);
+}
 /* io_zones 벡터의 각 존을 순회하며, 사용되지 않는 IO 존을 재설정합니다.
 재설정이 완료되면, 필요에 따라 토큰을 반환합니다.*/
 IOStatus ZonedBlockDevice::ResetUnusedIOZones() {

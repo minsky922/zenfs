@@ -247,6 +247,27 @@ class ZonedBlockDevice {
   void EncodeJsonZone(std::ostream &json_stream,
                       const std::vector<Zone *> zones);
 
+  struct FARStat {
+    uint64_t free_percent_;
+
+    size_t RC_;
+    int T_;
+    uint64_t R_wp_;  // (%)
+    uint64_t RT_;
+    FARStat(uint64_t fr, size_t rc, uint64_t wwp, int T, uint64_t rt)
+        : free_percent_(fr), RC_(rc), T_(T), RT_(rt) {
+      if (RC_ == 0) {
+        R_wp_ = 100;
+      } else
+        R_wp_ = (ZONE_SIZE * 100 - wwp * 100 / RC_) / ZONE_SIZE;
+    }
+    void PrintStat(void) {
+      printf("[%3d] | %3ld  | %3ld |  %3ld | [%3ld] |", T_, free_percent_, RC_,
+             R_wp_, (RT_ >> 20));
+    }
+  };
+  std::vector<FARStat> far_stats_;
+
  public:
   explicit ZonedBlockDevice(std::string path, ZbdBackendType backend,
                             std::shared_ptr<Logger> logger,
