@@ -473,6 +473,7 @@ class ZenFS : public FileSystemWrapper {
   // bool IsZCRunning(void) { return run_gc_worker_; }
   void ZCLock(void) override { zc_lock_.lock(); }
   void ZCUnLock(void) override { zc_lock_.unlock(); }
+  void BackgroundStatTimeLapse();
   //////////////////////////////////
   void GetZenFSSnapshot(ZenFSSnapshot& snapshot,
                         const ZenFSSnapshotOptions& options);

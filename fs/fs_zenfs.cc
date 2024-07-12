@@ -309,12 +309,10 @@ ZenFS::~ZenFS() {
   }
 
   std::cout << "2@@~ZenFS :: " << zbd_->GetTotalBytesWritten()
-            << "
-      UserByteWritten : "<<zbd_->GetUserBytesWritten()<<"\n ";
-                        std::cout
-            << "FAR STAT :: WA_zc (mb) : "
+            << "UserByteWritten : " << zbd_->GetUserBytesWritten() << "\n";
+  std::cout << "FAR STAT :: WA_zc (mb) : "
             << (zbd_->GetTotalBytesWritten() - zbd_->GetUserBytesWritten()) /
-                            (1 << 20)
+                   (1 << 20)
             << "\n";
 
   meta_log_.reset(nullptr);  // 메타 로그 정리
