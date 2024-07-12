@@ -491,11 +491,11 @@ IOStatus ZoneFile::AllocateNewZone() {
     std::cout << "Zone allocation started at: " << std::ctime(&start_time_t);
     // for (int try_n = 0; try_n < 16; try_n++) {
     while (zbd_->CalculateCapacityRemain() > (1 << 20) * 128) {
-      if (zbd_->IsZoneAllocationFailed()) {
-        return IOStatus::NoSpace("Zone allocation failed\n");
-      }
-      zenfs_->ZCLock();
-      std::cout << "##### ZCLock" << "\n";
+      // if (zbd_->IsZoneAllocationFailed()) {
+      //   return IOStatus::NoSpace("Zone allocation failed\n");
+      // }
+      // zenfs_->ZCLock();
+      // std::cout << "##### ZCLock" << "\n";
       zbd_->ResetUnusedIOZones();
       std::cout << "#### AllocateNewZone-ResetUnusedIoZones" << "\n";
       // usleep(1000 * 1000);  // 1초 대기
@@ -504,12 +504,12 @@ IOStatus ZoneFile::AllocateNewZone() {
       //              << "AllocateNewZone: CalculateCapacityRemain: " << z <<
       //              "\n";
       std::cout << "@@@@ io_zf::AllocateIOZone: " << zone << "\n";
-      zenfs_->ZCUnLock();
-      std::cout << "###### ZCUnLock" << "\n";
+      // zenfs_->ZCUnLock();
+      // std::cout << "###### ZCUnLock" << "\n";
       if (zone != nullptr) {
         break;
       }
-      // zbd_->ResetUnusedIOZones();
+      zbd_->ResetUnusedIOZones();
     }
 
     auto end_time = std::chrono::system_clock::now();  // 종료 시간 기록
