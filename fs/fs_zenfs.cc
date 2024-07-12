@@ -366,7 +366,7 @@ void ZenFS::ZoneCleaning(bool forced) {
       }
     }
   }
-  std::cout << "ZoneCleaning snapshot loop: ";
+  std::cout << "ZoneCleaning snapshot loop: " << "\n";
 
   // 가비지 비율에 따라 후보 존 정렬
   sort(victim_candidate.rbegin(), victim_candidate.rend());
@@ -387,7 +387,7 @@ void ZenFS::ZoneCleaning(bool forced) {
       break;
     }
   }
-  std::cout << "ZoneCleaning count: ";
+  std::cout << "ZoneCleaning count: " << "\n";
   // 청소 대상 존 선택
   for (size_t i = 0; i < reclaimed_zone_n && i < victim_candidate.size(); i++) {
     migrate_zones_start.emplace(victim_candidate[i].second);
@@ -445,7 +445,7 @@ void ZenFS::GCWorker() {
     // uint64_t free_percent = (100 * free) / (free + non_free);
     // std::cout << "GCWorker : free_percent : " << free_percent << "\n";
     //////////////////
-    free_percent_ = zbd_->CalculateFreePercent();
+    // free_percent_ = zbd_->CalculateFreePercent();
     std::cout << "GCWorker : free_percent_ : " << free_percent_ << "\n";
     if (free_percent_ < 20) {  // 20% 이하일 때만 ZoneCleaning 실행
       ZoneCleaning(true);
