@@ -566,6 +566,14 @@ IOStatus ZonedBlockDevice::ResetUnusedIOZones() {
       if (!z->IsEmpty() && !z->IsUsed()) {
         bool full = z->IsFull();  // 현재 존이 가득 찬 상태인지 확인하여 full
                                   // 변수에 저장
+        uint64_t cp = z->GetCapacityLeft();
+        //(cp > reset_threshold_) {
+        //   IOStatus release_status = z->CheckRelease();
+        //   if(!release_status.ok()){
+        //     return release_status;
+        //   }
+        //   continue;
+        // }
         clock_t start = clock();
         IOStatus reset_status = z->Reset();  // z->Reset(): 현재 존을 재설정
         reset_count_.fetch_add(1);
