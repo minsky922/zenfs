@@ -302,9 +302,38 @@ ZenFS::~ZenFS() {
     gc_worker_->join();      // 가비지 컬렉션 스레드 종료 대기
   }
 
+  if (bg_reset_worker_) {
+    run_bg_reset_worker_ = false;
+    // cv_.notify_all();
+    bg_reset_worker_->join();
+  }
+
+  std::cout << "2@@~ZenFS :: " << zbd_->GetTotalBytesWritten()
+            << "
+      UserByteWritten : "<<zbd_->GetUserBytesWritten()<<"\n ";
+                        std::cout
+            << "FAR STAT :: WA_zc (mb) : "
+            << (zbd_->GetTotalBytesWritten() - zbd_->GetUserBytesWritten()) /
+                            (1 << 20)
+            << "\n";
+
   meta_log_.reset(nullptr);  // 메타 로그 정리
-  ClearFiles();              // 파일 맵 정리
-  delete zbd_;               // ZonedBlockDevice 객체 삭제
+  uint64_t non_free = zbd_->GetUsedSpace() + zbd_->GetReclaimableSpace();
+  uint64_t free = zbd_->GetFreeSpace();
+  uint64_t free_percent = (100 * free) / (free + non_free);
+
+  printf("@@~Zenfs Last Free percent freepercent %ld \n", free_percent);
+  ClearFiles();  // 파일 맵 정리
+  delete zbd_;   // ZonedBlockDevice 객체 삭제
+}
+
+void ZenFS::BackgroundStatTimeLapse() {
+  while (run_bg_reset_worker_) {
+    free_percent_ = zbd_->CalculateFreePercent();
+    zbd_->AddTimeLapse(mount_time_);
+    sleep(1);
+    mount_time_.fetch_add(1);
+  }
 }
 
 void ZenFS::ZoneCleaning(bool forced) {
@@ -1667,6 +1696,10 @@ Status ZenFS::Mount(bool readonly) {
       Info(logger_, "Starting garbage collection worker");
       run_gc_worker_ = true;
       gc_worker_.reset(new std::thread(&ZenFS::GCWorker, this));
+      if (bg_reset_worker_ == nullptr) {
+        bg_reset_worker_.reset(
+            new std::thread(&ZenFS::BackgroundStatTimeLapse, this));
+      }
     }
   }
 

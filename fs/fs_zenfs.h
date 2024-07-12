@@ -153,8 +153,15 @@ class ZenFS : public FileSystemWrapper {
   std::shared_ptr<Logger> GetLogger() { return logger_; }  // 로거 반환
 
   std::unique_ptr<std::thread> gc_worker_ = nullptr;  // 가비지 컬렉션 스레드
+  //
+  std::unique_ptr<std::thread> bg_reset_worker_ =
+      nullptr;  // 매초마다 빈공간 계산하는 백그라운드 스레드
+  //
   uint64_t free_percent_ = 100;
   bool run_gc_worker_ = false;  // 가비지 컬렉션 작업 실행 여부
+  //
+  bool run_bg_reset_worker_ = false;
+  //
   std::atomic<int> zc_triggerd_count_{0};
   std::mutex zc_lock_;
 
