@@ -442,10 +442,6 @@ void ZenFS::ZoneCleaning(bool forced) {
     auto end_time_t = std::chrono::system_clock::to_time_t(end_time);
     std::cout << "ZoneCleaning ended at: " << std::ctime(&end_time_t)
               << std::endl;
-    zbd_->AddZCTimeLapse(start_time_t, end_time_t,
-                         migrate_zones_start.size() + all_inval_zone_n,
-                         forced);  // 시간 경과 기록
-
     if (should_be_copied > 0) {
       auto elapsed = std::chrono::high_resolution_clock::now() - start_chrono;
       long long microseconds =
