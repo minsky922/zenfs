@@ -445,7 +445,7 @@ void ZenFS::GCWorker() {
     // uint64_t free_percent = (100 * free) / (free + non_free);
     // std::cout << "GCWorker : free_percent : " << free_percent << "\n";
     //////////////////
-    // free_percent_ = zbd_->CalculateFreePercent();
+    free_percent_ = zbd_->CalculateFreePercent();
     std::cout << "GCWorker : free_percent_ : " << free_percent_ << "\n";
     if (free_percent_ < 20) {  // 20% 이하일 때만 ZoneCleaning 실행
       ZoneCleaning(true);

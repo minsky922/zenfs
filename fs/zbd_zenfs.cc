@@ -838,7 +838,8 @@ IOStatus ZonedBlockDevice::TakeMigrateZone(Zone **out_zone,
   // }
 
   // return s;
-  for (int i = 0; i < 2; i++) {
+  while (CalculateCapacityRemain() > min_capacity) {
+    // for (int i = 0; i < 2; i++) {
     s = GetBestOpenZoneMatch(file_lifetime, &best_diff, out_zone, min_capacity);
 
     if (s.ok() && (*out_zone) != nullptr) {
@@ -850,9 +851,18 @@ IOStatus ZonedBlockDevice::TakeMigrateZone(Zone **out_zone,
 
     if (s.ok() && (*out_zone) != nullptr) {
       Info(logger_, "TakeMigrateZone: %lu", (*out_zone)->start_);
+      printf("TakeMigrateZone: %lu", (*out_zone)->start_);
       break;
     }
+    s = AllocateEmptyZone(out_zone);
+    if (s.ok() && (*out_zone) != nullptr) {
+      Info(logger_, "TakeMigrateZone: %lu", (*out_zone)->start_);
+      printf("TakeMigrateZone: %lu", (*out_zone)->start_);
+      break;
+    }
+
     s = ResetUnusedIOZones();
+    sleep(1);
     if (!s.ok()) {
       return s;
     }
