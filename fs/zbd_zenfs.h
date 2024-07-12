@@ -324,7 +324,8 @@ class ZonedBlockDevice {
     }
     return;
   }
-  void AddZCTimeLapse(int s, int e, size_t zc_z, bool forced) {
+  void AddZCTimeLapse(int s, int e, long long us, size_t zc_z, size_t copied,
+                      bool forced) {
     if (forced == true) {
       force_zc_should_triggered_.store(false);
     }
