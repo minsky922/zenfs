@@ -956,7 +956,7 @@ IOStatus ZonedBlockDevice::AllocateIOZone(Env::WriteLifeTimeHint file_lifetime,
     return s;
   }
   if (allocated_zone == nullptr) {
-    printf("GetBestOpenZone return nullptr\n");
+    // printf("GetBestOpenZone return nullptr\n");
   }
 
   // Holding allocated_zone if != nullptr

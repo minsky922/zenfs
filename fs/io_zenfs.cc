@@ -496,14 +496,14 @@ IOStatus ZoneFile::AllocateNewZone() {
       // }
       // zenfs_->ZCLock();
       // std::cout << "##### ZCLock" << "\n";
-      zbd_->ResetUnusedIOZones();
-      std::cout << "#### AllocateNewZone-ResetUnusedIoZones" << "\n";
+      // zbd_->ResetUnusedIOZones();
+      // std::cout << "#### AllocateNewZone-ResetUnusedIoZones" << "\n";
       // usleep(1000 * 1000);  // 1초 대기
       s = zbd_->AllocateIOZone(lifetime_, io_type_, &zone);
       // uint64_t z = zbd_->CalculateCapacityRemain std::cout
       //              << "AllocateNewZone: CalculateCapacityRemain: " << z <<
       //              "\n";
-      std::cout << "@@@@ io_zf::AllocateIOZone: " << zone << "\n";
+      // std::cout << "@@@@ io_zf::AllocateIOZone: " << zone << "\n";
       // zenfs_->ZCUnLock();
       // std::cout << "###### ZCUnLock" << "\n";
       if (zone != nullptr) {
