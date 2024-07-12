@@ -200,7 +200,7 @@ class ZonedBlockDevice {
 
   std::mutex compaction_refused_lock_;
   std::atomic<int> compaction_refused_by_zone_interface_{0};
-  // std::set<int> compaction_blocked_at_;
+  std::set<int> compaction_blocked_at_;
   std::vector<int> compaction_blocked_at_amount_;
 
   /* time_lapse */
@@ -358,14 +358,14 @@ class ZonedBlockDevice {
       // }
     }
 
-    printf("df1 %ld\n", d_free_space);
+    // printf("df1 %ld\n", d_free_space);
     // d_free_space -= (writed >> 20);
     d_free_space -= BYTES_TO_MB(writed);
-    printf("df2 %ld\n", d_free_space);
+    // printf("df2 %ld\n", d_free_space);
     device_free_space_.store(d_free_space);
     cur_free_percent_ = (d_free_space * 100) / device_size;
     // CalculateResetThreshold();
-    printf("cf %ld\n", cur_free_percent_);
+    // printf("cf %ld\n", cur_free_percent_);
     return cur_free_percent_;
   }
 
@@ -398,12 +398,20 @@ class ZonedBlockDevice {
   IOStatus TakeMigrateZone(Zone **out_zone, Env::WriteLifeTimeHint lifetime,
                            uint32_t min_capacity);
 
-  void AddBytesWritten(uint64_t written) { bytes_written_ += written; };
-  void AddGCBytesWritten(uint64_t written) { gc_bytes_written_ += written; };
+  // void AddBytesWritten(uint64_t written) { bytes_written_ += written; };
+  // void AddGCBytesWritten(uint64_t written) { gc_bytes_written_ += written; };
+  void AddBytesWritten(uint64_t written) { bytes_written_.fetch_add(written); };
+  void AddGCBytesWritten(uint64_t written) {
+    gc_bytes_written_.fetch_add(written);
+    zc_copied_timelapse_.push_back(written);
+  };
+  uint64_t GetGCBytesWritten(void) { return gc_bytes_written_.load(); }
   uint64_t GetUserBytesWritten() {
     return bytes_written_.load() - gc_bytes_written_.load();
   };
   uint64_t GetTotalBytesWritten() { return bytes_written_.load(); };
+  int GetResetCount() { return reset_count_.load(); }
+  uint64_t GetWWP() { return wasted_wp_.load(); }
 
  private:
   IOStatus GetZoneDeferredStatus();

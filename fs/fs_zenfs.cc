@@ -308,7 +308,8 @@ ZenFS::~ZenFS() {
     bg_reset_worker_->join();
   }
 
-  std::cout << "2@@~ZenFS :: " << zbd_->GetTotalBytesWritten()
+  std::cout << "GetTotalBytesWritten :: " << zbd_->GetTotalBytesWritten()
+            << "\n"
             << "UserByteWritten : " << zbd_->GetUserBytesWritten() << "\n";
   std::cout << "FAR STAT :: WA_zc (mb) : "
             << (zbd_->GetTotalBytesWritten() - zbd_->GetUserBytesWritten()) /
@@ -2028,6 +2029,7 @@ IOStatus ZenFS::MigrateFileExtents(
     const std::string& fname,
     const std::vector<ZoneExtentSnapshot*>& migrate_exts) {
   IOStatus s = IOStatus::OK();
+  uint64_t copied = 0;
   // 파일 이름과 익스텐트 개수를 로깅
   Info(logger_, "MigrateFileExtents, fname: %s, extent count: %lu",
        fname.data(), migrate_exts.size());
@@ -2083,6 +2085,7 @@ IOStatus ZenFS::MigrateFileExtents(
     }
 
     uint64_t target_start = target_zone->wp_;
+    copied += ext->length_;
     if (zfile->IsSparse()) {
       // For buffered write, ZenFS use inlined metadata for extents and each
       // extent has a SPARSE_HEADER_SIZE.
@@ -2090,10 +2093,11 @@ IOStatus ZenFS::MigrateFileExtents(
       zfile->MigrateData(ext->start_ - ZoneFile::SPARSE_HEADER_SIZE,
                          ext->length_ + ZoneFile::SPARSE_HEADER_SIZE,
                          target_zone);
-      zbd_->AddGCBytesWritten(ext->length_ + ZoneFile::SPARSE_HEADER_SIZE);
+      // zbd_->AddGCBytesWritten(ext->length_ + ZoneFile::SPARSE_HEADER_SIZE);
+      copied += ZoneFile::SPARSE_HEADER_SIZE;
     } else {
       zfile->MigrateData(ext->start_, ext->length_, target_zone);
-      zbd_->AddGCBytesWritten(ext->length_);
+      // zbd_->AddGCBytesWritten(ext->length_);
     }
 
     // If the file doesn't exist, skip
@@ -2109,7 +2113,7 @@ IOStatus ZenFS::MigrateFileExtents(
 
     zbd_->ReleaseMigrateZone(target_zone);
   }
-
+  zbd_->AddGCBytesWritten(copied);
   SyncFileExtents(zfile.get(), new_extent_list);
   zfile->ReleaseWRLock();
 

@@ -484,7 +484,7 @@ void ZoneFile::PushExtent() {
 IOStatus ZoneFile::AllocateNewZone() {
   Zone* zone;
   IOStatus s = zbd_->AllocateIOZone(lifetime_, io_type_, &zone);
-  std::cout << "AllocateNewZone->zone: " << zone << "\n";
+  // std::cout << "AllocateNewZone->zone: " << zone << "\n";
   if (zone == nullptr) {
     auto start_time = std::chrono::system_clock::now();  // 시작 시간 기록
     auto start_time_t = std::chrono::system_clock::to_time_t(start_time);
@@ -522,6 +522,8 @@ IOStatus ZoneFile::AllocateNewZone() {
     auto end = std::chrono::duration_cast<std::chrono::seconds>(
                    end_time.time_since_epoch())
                    .count();
+    std::cout << "IO Blocked Time Start: " << start << " End: " << end
+              << std::endl;
     zbd_->AddIOBlockedTimeLapse(start, end);
   }
   if (!s.ok()) {

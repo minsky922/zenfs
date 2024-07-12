@@ -321,7 +321,7 @@ IOStatus ZonedBlockDevice::Open(bool readonly, bool exclusive) {
   printf("zbd_be_->GetZoneSize(): %ld\n", zbd_be_->GetZoneSize());
   uint64_t device_free_space = io_zones.size() * zbd_be_->GetZoneSize();
   printf("device free space : %ld\n", BYTES_TO_MB(device_free_space));
-  printf("zone sz %ld\n", zone_sz_);
+  // printf("zone sz %ld\n", zone_sz_);
   device_free_space_.store(device_free_space);
 
   start_time_ = time(NULL);
@@ -467,8 +467,10 @@ ZonedBlockDevice::~ZonedBlockDevice() {
   printf("============================================================\n");
   printf("FAR STAT 1 :: WWP (MB) : %lu, R_wp : %lu\n",
          wasted_wp_.load() / (1 << 20), R_wp);
-  printf("ZC IO Blocking time : %d, Compaction Refused : %lu\n", zc_io_block_,
-         compaction_blocked_at_amount_.size());
+  // printf("ZC IO Blocking time : %d, Compaction Refused : %lu\n",
+  // zc_io_block_,
+  //        compaction_blocked_at_amount_.size());
+  printf("ZC IO Blocking time : %d\n", zc_io_block_);
 
   printf("============================================================\n");
   uint64_t total_copied = 0;
@@ -556,6 +558,7 @@ void ZonedBlockDevice::AddTimeLapse(int T) {
 /* io_zones 벡터의 각 존을 순회하며, 사용되지 않는 IO 존을 재설정합니다.
 재설정이 완료되면, 필요에 따라 토큰을 반환합니다.*/
 IOStatus ZonedBlockDevice::ResetUnusedIOZones() {
+  clock_t reset_latency{0};
   for (const auto z : io_zones) {
     // Acquire 함수는 존을 사용할 수 있는지 확인하고 가능하면 락을 거는 역할
     if (z->Acquire()) {
@@ -563,7 +566,14 @@ IOStatus ZonedBlockDevice::ResetUnusedIOZones() {
       if (!z->IsEmpty() && !z->IsUsed()) {
         bool full = z->IsFull();  // 현재 존이 가득 찬 상태인지 확인하여 full
                                   // 변수에 저장
+        clock_t start = clock();
         IOStatus reset_status = z->Reset();  // z->Reset(): 현재 존을 재설정
+        reset_count_.fetch_add(1);
+        wasted_wp_.fetch_add(cp);
+
+        clock_t end = clock();
+        reset_latency += (end - start);
+        runtime_reset_reset_latency_.fetch_add(end - start);
         IOStatus release_status =
             z->CheckRelease();  // z->CheckRelease(): 재설정 후 존을 해제
         if (!reset_status.ok())
