@@ -476,14 +476,14 @@ ZonedBlockDevice::~ZonedBlockDevice() {
   uint64_t total_copied = 0;
   size_t rc_zc = 0;
   int io_blocking_sum = 0;
-  long long io_blocking_ms_sum = 0;
+  // long long io_blocking_ms_sum = 0;
   for (size_t i = 0;
        i < zc_timelapse_.size() && i < zc_copied_timelapse_.size(); i++) {
     bool forced = zc_timelapse_[i].forced;
     size_t zc_z = zc_timelapse_[i].zc_z;
     int s = zc_timelapse_[i].s;
     int e = zc_timelapse_[i].e;
-    long long us = zc_timelapse_[i].us;
+    // long long us = zc_timelapse_[i].us;
     io_blocking_sum += e - s + 1;
     // io_blocking_ms_sum += us;
     printf("[%lu] :: %d ~ %d, %ld (MB), Reclaimed Zone : %lu [%s]\n", i + 1, s,
