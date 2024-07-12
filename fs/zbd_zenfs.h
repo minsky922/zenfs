@@ -46,6 +46,7 @@ class ZenFSSnapshotOptions;
 #define ZENFS_SPARE_ZONES (1)
 
 #define ZENFS_META_ZONES (3)
+// #define log2_DEVICE_IO_CAPACITY (6) //64GB
 
 #define ZENFS_IO_ZONES (40)  // 20GB
 
@@ -54,6 +55,10 @@ class ZenFSSnapshotOptions;
 #define DEVICE_SIZE ((ZENFS_IO_ZONES) * (ZONE_SIZE))
 
 #define ZONE_SIZE_PER_DEVICE_SIZE (100 / (ZENFS_IO_ZONES))
+
+// #define WP_TO_RELATIVE_WP(wp,zone_sz,zidx) ((wp)-(zone_sz*zidx))
+
+#define BYTES_TO_MB(bytes) (bytes >> 20)
 
 class ZoneList {
  private:
