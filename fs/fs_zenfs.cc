@@ -336,6 +336,8 @@ void ZenFS::BackgroundStatTimeLapse() {
 
 void ZenFS::ZoneCleaning(bool forced) {
   // int start = GetMountTime();  // 시작 시간 기록
+  size_t should_be_copied = 0;
+
   auto start_time = std::chrono::system_clock::now();
   auto start_time_t = std::chrono::system_clock::to_time_t(start_time);
   std::cout << "ZoneCleaning started at: " << std::ctime(&start_time_t)
@@ -355,43 +357,68 @@ void ZenFS::ZoneCleaning(bool forced) {
 
   // 스냅샷에서 모든 존을 순회하며 상태 확인
   for (const auto& zone : snapshot.zones_) {
-    if (zone.capacity == 0) {
-      uint64_t garbage_percent_approx =
-          100 - 100 * zone.used_capacity /
-                    zone.max_capacity;  // 사용되지 않은 용량 계산
-      if (zone.used_capacity > 0) {  // 유효 데이터(valid data)가 있는 경우
-        victim_candidate.push_back({garbage_percent_approx, zone.start});
-      } else {  // 유효 데이터가 없는 경우
-        all_inval_zone_n++;
-      }
+    if (zone.capacity != 0) {
+      continue;
     }
+    if (zone.used_capacity == zone.max_capacity) {
+      continue;
+    }
+
+    // if (zone.capacity == 0) {
+    uint64_t garbage_percent_approx =
+        100 -
+        100 * zone.used_capacity /
+            zone.max_capacity;  // 사용되지 않은 용량 계산(invalid capacity)
+    if (zone.used_capacity > 0) {  // 유효 데이터(valid data)가 있는 경우
+      victim_candidate.push_back({garbage_percent_approx, zone.start});
+    } else {  // 유효 데이터가 없는 경우
+      all_inval_zone_n++;
+    }
+    // }
   }
   std::cout << "ZoneCleaning snapshot loop: " << "\n";
 
   // 가비지 비율에 따라 후보 존 정렬
   sort(victim_candidate.rbegin(), victim_candidate.rend());
 
-  uint64_t reclaimed_zone_n = 0;
-  uint64_t diff = ZONE_CLEANING_KICKING_POINT - free_percent_;
-  uint64_t kicking_point_z =
-      (ZONE_CLEANING_KICKING_POINT) / (ZONE_SIZE_PER_DEVICE_SIZE);
+  uint64_t threshold = 0;
+  uint64_t reclaimed_zone_n = 1;
+
+  // uint64_t diff = ZONE_CLEANING_KICKING_POINT - free_percent_;
+  // uint64_t kicking_point_z =
+  //     (ZONE_CLEANING_KICKING_POINT) / (ZONE_SIZE_PER_DEVICE_SIZE);
 
   if (forced) {
-    kicking_point_z += (10) / (ZONE_SIZE_PER_DEVICE_SIZE);
+    // kicking_point_z += (10) / (ZONE_SIZE_PER_DEVICE_SIZE);
+    reclaimed_zone_n += 1
   }
 
   // 청소할 존 수 계산
-  for (reclaimed_zone_n = 0; reclaimed_zone_n < kicking_point_z;
-       reclaimed_zone_n++) {
-    if (reclaimed_zone_n * ZONE_SIZE_PER_DEVICE_SIZE > diff) {
-      break;
+  reclaimed_zone_n = reclaimed_zone_n > victim_candidate.size()
+                         ? victim_candidate.size()
+                         : reclaimed_zone_n;
+  for (size_t i = 0;
+       (i < reclaimed_zone_n && migrate_zones_start.size() < reclaimed_zone_n);
+       i++) {
+    if (victim_candidate[i].first > threshold) {
+      should_be_copied +=
+          (zone_size - (victim_candidate[i].first * zone_size / 100));
+      migrate_zones_start.emplace(victim_candidate[i].second);
     }
   }
-  std::cout << "ZoneCleaning count: " << "\n";
-  // 청소 대상 존 선택
-  for (size_t i = 0; i < reclaimed_zone_n && i < victim_candidate.size(); i++) {
-    migrate_zones_start.emplace(victim_candidate[i].second);
-  }
+
+  // for (reclaimed_zone_n = 0; reclaimed_zone_n < kicking_point_z;
+  //      reclaimed_zone_n++) {
+  //   if (reclaimed_zone_n * ZONE_SIZE_PER_DEVICE_SIZE > diff) {
+  //     break;
+  //   }
+  // }
+  std::cout << "ZoneCleaning::recl " << "\n";
+  // // 청소 대상 존 선택
+  // for (size_t i = 0; i < reclaimed_zone_n && i < victim_candidate.size();
+  // i++) {
+  //   migrate_zones_start.emplace(victim_candidate[i].second);
+  // }
 
   std::vector<ZoneExtentSnapshot*> migrate_exts;
   for (auto& ext : snapshot.extents_) {

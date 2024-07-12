@@ -48,9 +48,9 @@ class ZenFSSnapshotOptions;
 #define ZENFS_META_ZONES (3)
 // #define log2_DEVICE_IO_CAPACITY (6) //64GB
 
-#define ZENFS_IO_ZONES (40)  // 20GB
+#define ZENFS_IO_ZONES (80)
 
-#define ZONE_SIZE 512
+#define ZONE_SIZE 1024
 
 #define DEVICE_SIZE ((ZENFS_IO_ZONES) * (ZONE_SIZE))
 
