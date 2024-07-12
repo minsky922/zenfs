@@ -281,8 +281,8 @@ IOStatus ZonedBlockDevice::Open(bool readonly, bool exclusive) {
 
   active_io_zones_ = 0;
   open_io_zones_ = 0;
-  // uint64_t device_io_capacity = 85899345920;  // 80GB
-  uint64_t device_io_capacity = 10737418240;  // 10GB
+  uint64_t device_io_capacity = 85899345920;  // 80GB
+  // uint64_t device_io_capacity = 10737418240;  // 10GB
   for (; i < zone_rep->ZoneCount() &&
          (io_zones.size() * zbd_be_->GetZoneSize()) < (device_io_capacity);
        i++) {
