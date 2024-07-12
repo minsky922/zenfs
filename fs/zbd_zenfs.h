@@ -317,77 +317,79 @@ class ZonedBlockDevice {
   }
 
   uint64_t CalculateFreePercent(void) {
-    uint64_t device_size = (uint64_t)ZENFS_IO_ZONES * (uint64_t)ZONE_SIZE;
-    uint64_t d_free_space = device_size;
+    // uint64_t device_size = (uint64_t)ZENFS_IO_ZONES * (uint64_t)ZONE_SIZE;
+    uint64_t zone_sz = BYTES_TO_MB(zbd_be_->GetZoneSize());   // MB
+    uint64_t device_size = (uint64_t)GetNrZones() * zone_sz;  // MB
+    uint64_t d_free_space = device_size;                      // MB
     uint64_t writed = 0;
     for (const auto z : io_zones) {
-      if (z->IsBusy()) {
-        d_free_space -= (uint64_t)ZONE_SIZE;
-      } else {
-        // uint64_t wp_mb=(z->wp)>>20
-        // d_free_space -=(uint64_t)( z->wp_- z->start_ ) >>20 ;
-        writed += z->wp_ - z->start_;
-      }
+      // if (z->IsBusy()) {
+      // d_free_space -= (uint64_t)ZONE_SIZE;
+      // } else {
+      // uint64_t wp_mb=(z->wp)>>20
+      // d_free_space -=(uint64_t)( z->wp_- z->start_ ) >>20 ;
+      writed += z->wp_ - z->start_;  // BYTE
     }
-
-    printf("df1 %ld\n", d_free_space);
-    d_free_space -= (writed >> 20);
-    printf("df 2%ld\n", d_free_space);
-    device_free_space_.store(d_free_space);
-    cur_free_percent_ = (d_free_space * 100) / device_size;
-    // CalculateResetThreshold();
-    printf("cf %ld\n", cur_free_percent_);
-    return cur_free_percent_;
   }
 
+  printf("df1 %ld\n", d_free_space);
+  // d_free_space -= (writed >> 20);
+  d_free_space -= BYTES_TO_MB(writed);
+  printf("df 2%ld\n", d_free_space);
+  device_free_space_.store(d_free_space);
+  cur_free_percent_ = (d_free_space * 100) / device_size;
+  // CalculateResetThreshold();
+  printf("cf %ld\n", cur_free_percent_);
+  return cur_free_percent_;
+}
+
   void LogZoneStats();
-  void LogZoneUsage();
-  void LogGarbageInfo();
+void LogZoneUsage();
+void LogGarbageInfo();
 
-  uint64_t GetZoneSize();
-  uint32_t GetNrZones();
-  std::vector<Zone *> GetMetaZones() { return meta_zones; }
+uint64_t GetZoneSize();
+uint32_t GetNrZones();
+std::vector<Zone *> GetMetaZones() { return meta_zones; }
 
-  void SetFinishTreshold(uint32_t threshold) { finish_threshold_ = threshold; }
+void SetFinishTreshold(uint32_t threshold) { finish_threshold_ = threshold; }
 
-  void PutOpenIOZoneToken();
-  void PutActiveIOZoneToken();
+void PutOpenIOZoneToken();
+void PutActiveIOZoneToken();
 
-  void EncodeJson(std::ostream &json_stream);
+void EncodeJson(std::ostream &json_stream);
 
-  void SetZoneDeferredStatus(IOStatus status);
+void SetZoneDeferredStatus(IOStatus status);
 
-  std::shared_ptr<ZenFSMetrics> GetMetrics() { return metrics_; }
+std::shared_ptr<ZenFSMetrics> GetMetrics() { return metrics_; }
 
-  void GetZoneSnapshot(std::vector<ZoneSnapshot> &snapshot);
+void GetZoneSnapshot(std::vector<ZoneSnapshot> &snapshot);
 
-  int Read(char *buf, uint64_t offset, int n, bool direct);
-  IOStatus InvalidateCache(uint64_t pos, uint64_t size);
+int Read(char *buf, uint64_t offset, int n, bool direct);
+IOStatus InvalidateCache(uint64_t pos, uint64_t size);
 
-  IOStatus ReleaseMigrateZone(Zone *zone);
+IOStatus ReleaseMigrateZone(Zone *zone);
 
-  IOStatus TakeMigrateZone(Zone **out_zone, Env::WriteLifeTimeHint lifetime,
-                           uint32_t min_capacity);
+IOStatus TakeMigrateZone(Zone **out_zone, Env::WriteLifeTimeHint lifetime,
+                         uint32_t min_capacity);
 
-  void AddBytesWritten(uint64_t written) { bytes_written_ += written; };
-  void AddGCBytesWritten(uint64_t written) { gc_bytes_written_ += written; };
-  uint64_t GetUserBytesWritten() {
-    return bytes_written_.load() - gc_bytes_written_.load();
-  };
-  uint64_t GetTotalBytesWritten() { return bytes_written_.load(); };
+void AddBytesWritten(uint64_t written) { bytes_written_ += written; };
+void AddGCBytesWritten(uint64_t written) { gc_bytes_written_ += written; };
+uint64_t GetUserBytesWritten() {
+  return bytes_written_.load() - gc_bytes_written_.load();
+};
+uint64_t GetTotalBytesWritten() { return bytes_written_.load(); };
 
- private:
-  IOStatus GetZoneDeferredStatus();
-  bool GetActiveIOZoneTokenIfAvailable();
-  void WaitForOpenIOZoneToken(bool prioritized);
-  IOStatus ApplyFinishThreshold();
-  IOStatus FinishCheapestIOZone();
-  IOStatus GetBestOpenZoneMatch(Env::WriteLifeTimeHint file_lifetime,
-                                unsigned int *best_diff_out, Zone **zone_out,
-                                uint32_t min_capacity = 0);
-  IOStatus GetAnyLargestRemainingZone(Zone **zone_out,
-                                      uint32_t min_capacity = 0);
-  IOStatus AllocateEmptyZone(Zone **zone_out);
+private:
+IOStatus GetZoneDeferredStatus();
+bool GetActiveIOZoneTokenIfAvailable();
+void WaitForOpenIOZoneToken(bool prioritized);
+IOStatus ApplyFinishThreshold();
+IOStatus FinishCheapestIOZone();
+IOStatus GetBestOpenZoneMatch(Env::WriteLifeTimeHint file_lifetime,
+                              unsigned int *best_diff_out, Zone **zone_out,
+                              uint32_t min_capacity = 0);
+IOStatus GetAnyLargestRemainingZone(Zone **zone_out, uint32_t min_capacity = 0);
+IOStatus AllocateEmptyZone(Zone **zone_out);
 };
 
 }  // namespace ROCKSDB_NAMESPACE

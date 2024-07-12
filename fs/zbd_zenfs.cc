@@ -317,7 +317,7 @@ IOStatus ZonedBlockDevice::Open(bool readonly, bool exclusive) {
   printf("zbd_be_->GetZoneSize(): %ld\n", zbd_be_->GetZoneSize());
   uint64_t device_free_space = io_zones.size() * zbd_be_->GetZoneSize();
   printf("device free space : %ld\n", BYTES_TO_MB(device_free_space));
-  printf("zone sz %lu\n", zone_sz_);
+  printf("zone sz %ld\n", zone_sz_);
   device_free_space_.store(device_free_space);
 
   start_time_ = time(NULL);
