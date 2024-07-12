@@ -342,9 +342,10 @@ class ZonedBlockDevice {
     // uint64_t device_size = (uint64_t)ZENFS_IO_ZONES * (uint64_t)ZONE_SIZE;
     uint64_t zone_sz = BYTES_TO_MB(zbd_be_->GetZoneSize());  // MB
     // uint64_t device_size = (uint64_t)GetNrZones() * zone_sz;  // MB
-    printf("calcuatefreepercent::io_zones.size() : %ld\n", io_zones.size());
-    uint64_t device_size = io_zones.size() * zone_sz;  // MB
-    uint64_t d_free_space = device_size;               // MB
+    // printf("calcuatefreepercent::io_zones.size() : %ld\n", io_zones.size());
+    // uint64_t device_size = io_zones.size() * zone_sz;  // MB
+    uint64_t device_size = (uint64_t)80 * zone_sz;  // MB
+    uint64_t d_free_space = device_size;            // MB
     uint64_t writed = 0;
     for (const auto z : io_zones) {
       // if (z->IsBusy()) {
