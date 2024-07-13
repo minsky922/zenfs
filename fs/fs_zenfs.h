@@ -466,6 +466,7 @@ class ZenFS : public FileSystemWrapper {
         "MemoryMappedFileBuffer is not implemented in ZenFS");
   }
   //////////////////////////////////////
+  void SetResetScheme(uint32_t r, bool f, uint64_t T) override;
   bool IsZoneDevice() { return true; }
   // void ZoneCleaningWorker(bool run_once=false) override;
   void ZoneCleaning(bool forced);

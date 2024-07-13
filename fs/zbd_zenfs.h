@@ -248,7 +248,22 @@ class ZonedBlockDevice {
 
   void EncodeJsonZone(std::ostream &json_stream,
                       const std::vector<Zone *> zones);
-
+  void CalculateResetThreshold();
+  uint32_t reset_scheme_;
+  bool reset_at_foreground_;
+  uint64_t tuning_point_;
+  enum {
+    kEager = 0,
+    kLazy = 1,
+    kFAR = 2,
+    kLazy_Log = 3,
+    kLazy_Linear = 4,
+    kCustom = 5,
+    kLogLinear = 6,
+    kNoRuntimeReset = 7,
+    kNoRuntimeLinear = 8,
+    kLazyExponential = 9
+  };
   struct FARStat {
     uint64_t free_percent_;
 
@@ -412,6 +427,20 @@ class ZonedBlockDevice {
   uint64_t GetTotalBytesWritten() { return bytes_written_.load(); };
   int GetResetCount() { return reset_count_.load(); }
   uint64_t GetWWP() { return wasted_wp_.load(); }
+  void SetResetScheme(uint32_t r, bool f, uint64_t T) {
+    reset_scheme_ = r;
+    reset_at_foreground_ = f;
+    tuning_point_ = T;
+    // if(zc!=0){
+    //   zc_until_set_=true;
+    //   zc_=zc;
+    //   until_=until;
+    // }
+
+    // for(uint64_t f=0;f<=100;f++){
+    //   CalculateResetThreshold(f);
+    // }
+  }
 
  private:
   IOStatus GetZoneDeferredStatus();

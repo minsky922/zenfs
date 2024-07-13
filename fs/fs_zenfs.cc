@@ -1162,6 +1162,17 @@ IOStatus ZenFS::GetFileSize(const std::string& filename,
   return s;
 }
 
+void ZenFS::SetResetScheme(uint32_t r, bool f, uint64_t T) {
+  zbd_->SetResetScheme(r, f, T);
+  run_bg_reset_worker_ = true;
+  if (gc_worker_ != nullptr) {
+    if (bg_reset_worker_ == nullptr) {
+      bg_reset_worker_.reset(
+          new std::thread(&ZenFS::BackgroundStatTimeLapse, this));
+    }
+  }
+}
+
 /* Must hold files_mtx_ */
 IOStatus ZenFS::RenameChildNoLock(std::string const& source_dir,
                                   std::string const& dest_dir,
@@ -1725,12 +1736,12 @@ Status ZenFS::Mount(bool readonly) {
       Info(logger_, "Starting garbage collection worker");
       run_gc_worker_ = true;
       gc_worker_.reset(new std::thread(&ZenFS::GCWorker, this));
-      run_bg_reset_worker_ = true;
-      if (bg_reset_worker_ == nullptr) {
-        printf("starting bg_reset_worker");
-        bg_reset_worker_.reset(
-            new std::thread(&ZenFS::BackgroundStatTimeLapse, this));
-      }
+      // run_bg_reset_worker_ = true;
+      // if (bg_reset_worker_ == nullptr) {
+      //   printf("starting bg_reset_worker");
+      //   bg_reset_worker_.reset(
+      //       new std::thread(&ZenFS::BackgroundStatTimeLapse, this));
+      // }
     }
   }
 

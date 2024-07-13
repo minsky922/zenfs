@@ -568,6 +568,42 @@ void ZonedBlockDevice::AddTimeLapse(int T) {
   far_stats_.emplace_back(cur_free_percent_, reset_count_.load(),
                           wasted_wp_.load() / (1 << 20), T, reset_threshold_);
 }
+
+void ZonedBlockDevice::CalculateResetThreshold() {
+  uint64_t rt = 0;
+  uint64_t max_capacity = io_zones[0]->max_capacity_;
+  uint64_t free_percent = cur_free_percent_;
+  switch (reset_scheme_) {
+    case kEager:
+      rt = max_capacity;
+      break;
+    case kLazy:
+      rt = 0;
+      break;
+    case kFAR:  // Constant scale
+      rt = max_capacity - (max_capacity * free_percent) / 100;
+      break;
+    case kLazy_Log:
+      rt = LazyLog(max_capacity, free_percent, tuning_point_);
+      break;
+    case kNoRuntimeLinear:
+    case kLazy_Linear:
+      rt = LazyLinear(max_capacity, free_percent, tuning_point_);
+      break;
+    case kCustom:
+      rt = Custom(max_capacity, free_percent, tuning_point_);
+      break;
+    case kLogLinear:
+      rt = LogLinear(max_capacity, free_percent, tuning_point_);
+      break;
+    case kLazyExponential:
+      rt = LazyExponential(max_capacity, free_percent, tuning_point_);
+      break;
+    default:
+      break;
+  }
+  reset_threshold_ = rt;
+}
 /* io_zones 벡터의 각 존을 순회하며, 사용되지 않는 IO 존을 재설정합니다.
 재설정이 완료되면, 필요에 따라 토큰을 반환합니다.*/
 IOStatus ZonedBlockDevice::ResetUnusedIOZones() {
