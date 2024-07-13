@@ -454,6 +454,12 @@ class ZonedBlockDevice {
   IOStatus GetAnyLargestRemainingZone(Zone **zone_out,
                                       uint32_t min_capacity = 0);
   IOStatus AllocateEmptyZone(Zone **zone_out);
+
+  inline uint64_t LazyLog(uint64_t sz, uint64_t fr, uint64_t T);
+  inline uint64_t LazyLinear(uint64_t sz, uint64_t fr, uint64_t T);
+  inline uint64_t Custom(uint64_t sz, uint64_t fr, uint64_t T);
+  inline uint64_t LogLinear(uint64_t sz, uint64_t fr, uint64_t T);
+  inline uint64_t LazyExponential(uint64_t sz, uint64_t fr, uint64_t T);
 };
 
 }  // namespace ROCKSDB_NAMESPACE

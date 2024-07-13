@@ -569,6 +569,55 @@ void ZonedBlockDevice::AddTimeLapse(int T) {
                           wasted_wp_.load() / (1 << 20), T, reset_threshold_);
 }
 
+inline uint64_t ZonedBlockDevice::LazyLog(uint64_t sz, uint64_t fr,
+                                          uint64_t T) {
+  T++;
+  if (fr >= T) {
+    return 0 + (1 << 14);
+  }
+  return sz * (1 - log(fr + 1) / log(T));
+}
+
+inline uint64_t ZonedBlockDevice::LazyLinear(uint64_t sz, uint64_t fr,
+                                             uint64_t T) {
+  if (fr >= T) {
+    return 0 + (1 << 14);
+  }
+  return sz - (sz * fr) / T;
+}
+inline uint64_t ZonedBlockDevice::Custom(uint64_t sz, uint64_t fr, uint64_t T) {
+  if (fr >= T) {
+    return sz - sz * T / 100;
+  }
+  return sz - (fr * sz) / 100;
+}
+
+inline uint64_t ZonedBlockDevice::LogLinear(uint64_t sz, uint64_t fr,
+                                            uint64_t T) {
+  double ratio;
+  if (fr >= T) {
+    ratio = (1 - log(fr + 1) / log(101));
+    return ratio * sz;
+  }
+  ratio = (1 - log(T + 1) / log(101)) * 100;
+  double slope = (100 - ratio) / T;
+  ratio = 100 - slope * fr;
+
+  return ratio * sz / 100;
+}
+inline uint64_t ZonedBlockDevice::LazyExponential(uint64_t sz, uint64_t fr,
+                                                  uint64_t T) {
+  if (fr >= T) {
+    return 0 + (1 << 14);
+  }
+  if (fr == 0) {
+    return sz;
+  }
+  double b = pow(100, 1 / (float)T);
+  b = pow(b, fr);
+  return sz - (b * sz / 100);
+}
+
 void ZonedBlockDevice::CalculateResetThreshold() {
   uint64_t rt = 0;
   uint64_t max_capacity = io_zones[0]->max_capacity_;
