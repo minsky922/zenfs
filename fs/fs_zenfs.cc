@@ -1163,6 +1163,8 @@ IOStatus ZenFS::GetFileSize(const std::string& filename,
 }
 
 void ZenFS::SetResetScheme(uint32_t r, bool f, uint64_t T) {
+  std::cout << "ZenFS::SetResetScheme: r = " << r << ", f = " << f
+            << ", T = " << T << std::endl;
   zbd_->SetResetScheme(r, f, T);
   run_bg_reset_worker_ = true;
   if (gc_worker_ != nullptr) {

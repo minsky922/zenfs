@@ -428,6 +428,8 @@ class ZonedBlockDevice {
   int GetResetCount() { return reset_count_.load(); }
   uint64_t GetWWP() { return wasted_wp_.load(); }
   void SetResetScheme(uint32_t r, bool f, uint64_t T) {
+    std::cout << "zbd_->SetResetScheme: r = " << r << ", f = " << f
+              << ", T = " << T << std::endl;
     reset_scheme_ = r;
     reset_at_foreground_ = f;
     tuning_point_ = T;
