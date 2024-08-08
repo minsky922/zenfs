@@ -420,7 +420,7 @@ void ZenFS::ZoneCleaning(bool forced) {
             } else {
               // 수정 시간을 가져오지 못한 경우 오류를 출력합니다.
               std::cerr << "Failed to get modification time for file: "
-                        << zoneFile->GetFilename() << " Error: " << s.ToString()
+                        << zone_file.filename << " Error: " << s.ToString()
                         << std::endl;
             }
           }
