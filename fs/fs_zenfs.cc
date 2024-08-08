@@ -335,6 +335,24 @@ void ZenFS::BackgroundStatTimeLapse() {
   }
 }
 
+// uint64_t ZenFS::GetRecentModificationTime(ZenFSZone& zone) {
+//   uint64_t recent_modification_time = 0;
+
+//   // 존 내 모든 파일에 대해 루프를 돌면서 가장 최근의 수정 시간을 찾는다.
+//   for (const auto& file : zone.files) {
+//     uint64_t file_mod_time = file->GetFileModificationTime();
+
+//     std::cout << "File modification time: " << file_mod_time << std::endl;
+
+//     // 수정 시간이 가장 최신인 경우, recent_modification_time을 업데이트
+//     if (file_mod_time > recent_modification_time) {
+//       recent_modification_time = file_mod_time;
+//     }
+//   }
+
+//   return recent_modification_time;
+// }
+
 void ZenFS::ZoneCleaning(bool forced) {
   // int start = GetMountTime();  // 시작 시간 기록
   uint64_t zone_size = zbd_->GetZoneSize();
@@ -370,7 +388,48 @@ void ZenFS::ZoneCleaning(bool forced) {
         100 - 100 * zone.used_capacity /
                   zone.max_capacity;  // 사용되지 않은 용량 계산
     if (zone.used_capacity > 0) {  // 유효 데이터(valid data)가 있는 경우
-      victim_candidate.push_back({garbage_percent_approx, zone.start});
+      // 현재 시간을 얻습니다.
+      auto current_time = std::chrono::system_clock::now();
+
+      // 존에서 가장 최근에 수정된 블록의 시간을 가져옵니다.
+      uint64_t recent_modification_time = 0;
+
+      for (const auto& file : zone.files) {
+        uint64_t file_mod_time = 0;
+
+        // 파일의 수정 시간을 가져옵니다.
+        IOStatus s = GetFileModificationTime(file->GetFileName(), options,
+                                             &file_mod_time, dbg);
+
+        // 수정 시간을 제대로 가져왔다면 출력합니다.
+        if (s.ok()) {
+          std::cout << "File modification time: " << file_mod_time << std::endl;
+
+          // 수정 시간이 가장 최신인 경우, recent_modification_time을
+          // 업데이트합니다.
+          if (file_mod_time > recent_modification_time) {
+            recent_modification_time = file_mod_time;
+          }
+        } else {
+          // 수정 시간을 가져오지 못한 경우 오류를 출력합니다.
+          std::cerr << "Failed to get modification time for file: "
+                    << file->GetFileName() << " Error: " << s.ToString()
+                    << std::endl;
+        }
+      }
+
+      // 나이(Age)를 계산합니다.
+      uint64_t age = std::chrono::duration_cast<std::chrono::seconds>(
+                         current_time.time_since_epoch())
+                         .count() -
+                     recent_modification_time;
+      /* greedy */
+      // victim_candidate.push_back(
+      //     {garbage_percent_approx, zone.start});
+      /* cost-benefit */
+      victim_candidate.push_back(
+          {garbage_percent_approx * age / (zone.used_capacity * 2),
+           zone.start});
     } else {  // 유효 데이터가 없는 경우
       all_inval_zone_n++;
     }
