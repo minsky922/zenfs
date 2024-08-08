@@ -394,11 +394,12 @@ void ZenFS::ZoneCleaning(bool forced) {
       // 존에서 가장 최근에 수정된 블록의 시간을 가져옵니다.
       uint64_t recent_modification_time = 0;
 
-      for (const auto& file : zone.files) {
+      for (const auto& file_pair : files_) {
+        std::shared_ptr<ZoneFile> zoneFile = file_pair.second;
         uint64_t file_mod_time = 0;
 
         // 파일의 수정 시간을 가져옵니다.
-        IOStatus s = GetFileModificationTime(file->GetFileName(), options,
+        IOStatus s = GetFileModificationTime(zoneFile->GetFileName(), options,
                                              &file_mod_time, dbg);
 
         // 수정 시간을 제대로 가져왔다면 출력합니다.
