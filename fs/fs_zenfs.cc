@@ -399,9 +399,8 @@ void ZenFS::ZoneCleaning(bool forced) {
         uint64_t file_mod_time = 0;
 
         // 파일의 수정 시간을 가져옵니다.
-        IOStatus s = GetFileModificationTime(zoneFile->GetFileName(), options,
-                                             &file_mod_time, dbg);
-
+        IOStatus s = GetFileModificationTime(zoneFile->GetFilename(), options,
+                                             &file_mod_time, nullptr);
         // 수정 시간을 제대로 가져왔다면 출력합니다.
         if (s.ok()) {
           std::cout << "File modification time: " << file_mod_time << std::endl;
