@@ -394,13 +394,16 @@ void ZenFS::ZoneCleaning(bool forced) {
       // 존에서 가장 최근에 수정된 블록의 시간을 가져옵니다.
       uint64_t recent_modification_time = 0;
 
+      // IOOptions 객체를 생성합니다.
+      rocksdb::IOOptions io_options;
+
       for (const auto& file_pair : files_) {
         std::shared_ptr<ZoneFile> zoneFile = file_pair.second;
         uint64_t file_mod_time = 0;
 
         // 파일의 수정 시간을 가져옵니다.
-        IOStatus s = GetFileModificationTime(zoneFile->GetFilename(), options,
-                                             &file_mod_time, nullptr);
+        IOStatus s = GetFileModificationTime(
+            zoneFile->GetFilename(), io_options, &file_mod_time, nullptr);
         // 수정 시간을 제대로 가져왔다면 출력합니다.
         if (s.ok()) {
           std::cout << "File modification time: " << file_mod_time << std::endl;
@@ -413,7 +416,7 @@ void ZenFS::ZoneCleaning(bool forced) {
         } else {
           // 수정 시간을 가져오지 못한 경우 오류를 출력합니다.
           std::cerr << "Failed to get modification time for file: "
-                    << file->GetFileName() << " Error: " << s.ToString()
+                    << zoneFile->GetFilename() << " Error: " << s.ToString()
                     << std::endl;
         }
       }
