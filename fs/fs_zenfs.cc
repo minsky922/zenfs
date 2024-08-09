@@ -395,7 +395,7 @@ void ZenFS::ZoneCleaning(bool forced) {
       rocksdb::IOOptions io_options;
       // std::set<std::string>
       //     processed_files;  // 이미 처리한 파일을 저장하기 위한 집합
-      std::cout << "Processing Zone at start: " << zone.start << std::endl;
+      // std::cout << "Processing Zone at start: " << zone.start << std::endl;
 
       // zone_files_를 사용하여 해당 존에 속한 파일들에 접근합니다.
       for (const auto& zone_file : snapshot.zone_files_) {
@@ -433,9 +433,9 @@ void ZenFS::ZoneCleaning(bool forced) {
           }
         }
       }
-      std::cout << "Total_age: " << total_age << std::endl;
+      // std::cout << "Total_age: " << total_age << std::endl;
       uint64_t denominator = (100 - garbage_percent_approx) * 2;
-      std::cout << "  Denominator: " << denominator << std::endl;
+      // std::cout << "  Denominator: " << denominator << std::endl;
       /* greedy */
       // victim_candidate.push_back(
       //     {garbage_percent_approx, zone.start});
@@ -444,12 +444,14 @@ void ZenFS::ZoneCleaning(bool forced) {
       if (denominator != 0) {
         uint64_t cost_benefit_score =
             garbage_percent_approx * total_age / denominator;
-        std::cout << "  Calculated cost-benefit score: " << cost_benefit_score
-                  << std::endl;
+        // std::cout << "  Calculated cost-benefit score: " <<
+        // cost_benefit_score
+        //           << std::endl;
 
         victim_candidate.push_back({cost_benefit_score, zone.start});
-        std::cout << "  Added to victim_candidate: Zone Start: " << zone.start
-                  << std::endl;
+        // std::cout << "  Added to victim_candidate: Zone Start: " <<
+        // zone.start
+        //           << std::endl;
       }
       // // else {
       //   std::cerr << "  Warning: Denominator is zero, skipping this zone."
@@ -481,11 +483,11 @@ void ZenFS::ZoneCleaning(bool forced) {
   sort(victim_candidate.rbegin(), victim_candidate.rend());
 
   // victim_candidate 출력
-  std::cout << "Victim candidates:" << std::endl;
-  for (const auto& candidate : victim_candidate) {
-    std::cout << "cost-benefit score: " << candidate.first
-              << ", Zone Start: " << candidate.second << std::endl;
-  }
+  // std::cout << "Victim candidates:" << std::endl;
+  // for (const auto& candidate : victim_candidate) {
+  //   std::cout << "cost-benefit score: " << candidate.first
+  //             << ", Zone Start: " << candidate.second << std::endl;
+  // }
 
   uint64_t threshold = 0;
   uint64_t reclaimed_zone_n = 1;
@@ -505,6 +507,8 @@ void ZenFS::ZoneCleaning(bool forced) {
     if (victim_candidate[i].first > threshold) {
       should_be_copied +=
           (zone_size - (victim_candidate[i].first * zone_size / 100));
+      std::cout << "cost-benefit score: " << victim_candidate[i].first
+                << ", Zone Start: " << victim_candidate[i].second << std::endl;
       migrate_zones_start.emplace(victim_candidate[i].second);
     }
   }
