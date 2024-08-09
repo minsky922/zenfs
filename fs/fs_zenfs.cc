@@ -399,16 +399,14 @@ void ZenFS::ZoneCleaning(bool forced) {
 
       // zone_files_를 사용하여 해당 존에 속한 파일들에 접근합니다.
       for (const auto& zone_file : snapshot.zone_files_) {
-        std::cout << "  Zone File ID: " << zone_file.file_id
-                  << " | Filename: " << zone_file.filename
-                  << " | Number of Extents: " << zone_file.extents.size()
-                  << std::endl;
-
         for (const auto& extent : zone_file.extents) {
-          if (extent.start >= zone.start &&
-              (extent.start + extent.length) <=
-                  (zone.start + zone_size)) {  // 해당 존에 속하는 파일인지 확인
+          if (extent.zone_start ==
+              zone.start) {  // 현재 존에 속하는 익스텐트만 처리
             // 익스텐트 정보 출력
+            std::cout << "  Zone File ID: " << zone_file.file_id
+                      << " | Filename: " << zone_file.filename
+                      << " | Extent Start: " << extent.start
+                      << " | Extent Length: " << extent.length << std::endl;
             std::cout << "  File: " << extent.filename
                       << " | Extent Start: " << extent.start
                       << " | Extent Length: " << extent.length
