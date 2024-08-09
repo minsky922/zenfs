@@ -1007,7 +1007,16 @@ IOStatus ZonedBlockDevice::TakeMigrateZone(Zone **out_zone,
     s = AllocateEmptyZone(out_zone);
     if (s.ok() && (*out_zone) != nullptr) {
       Info(logger_, "TakeMigrateZone: %lu", (*out_zone)->start_);
-      printf("TakeMigrateZone: %lu", (*out_zone)->start_);
+      printf("TakeMigrateZone - emptyzone : %lu", (*out_zone)->start_);
+      break;
+    }
+
+    // If AllocateEmptyZone fails, try to allocate any zone that meets the
+    // min_capacity requirement
+    s = GetAnyLargestRemainingZone(out_zone, min_capacity);
+    if (s.ok() && (*out_zone) != nullptr) {
+      Info(logger_, "TakeMigrateZone: %lu", (*out_zone)->start_);
+      printf("TakeMigrateZone - emptyzone failed : %lu", (*out_zone)->start_);
       break;
     }
 

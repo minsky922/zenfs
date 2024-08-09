@@ -492,9 +492,9 @@ void ZenFS::ZoneCleaning(bool forced) {
   uint64_t threshold = 0;
   uint64_t reclaimed_zone_n = 1;
 
-  if (forced) {
-    reclaimed_zone_n += 1;
-  }
+  // if (forced) {
+  //   reclaimed_zone_n += 1;
+  // }
 
   // 청소할 존 수 계산
   reclaimed_zone_n = reclaimed_zone_n > victim_candidate.size()
