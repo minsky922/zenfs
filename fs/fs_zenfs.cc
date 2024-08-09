@@ -385,11 +385,11 @@ void ZenFS::ZoneCleaning(bool forced) {
       continue;
     }
     uint64_t garbage_percent_approx =
-        100 - 100 * zone.used_capacity /
-                  zone.max_capacity;  // 사용되지 않은 용량 계산
+        100 - 100 * zone.used_capacity / zone.max_capacity;  // 가비지 비율
     if (zone.used_capacity > 0) {  // 유효 데이터(valid data)가 있는 경우
       // 현재 시간을 얻습니다.
       auto current_time = std::chrono::system_clock::now();
+      uint64_t total_age = 0;
 
       // 존에서 가장 최근에 수정된 블록의 시간을 가져옵니다.
       uint64_t recent_modification_time = 0;
@@ -399,14 +399,12 @@ void ZenFS::ZoneCleaning(bool forced) {
       std::set<std::string>
           processed_files;  // 이미 처리한 파일을 저장하기 위한 집합
 
-      std::cout << "Total number of files in zone: "
-                << snapshot.zone_files_.size() << std::endl;
-
       // zone_files_를 사용하여 해당 존에 속한 파일들에 접근합니다.
       for (const auto& zone_file : snapshot.zone_files_) {
         for (const auto& extent : zone_file.extents) {
-          if (extent.zone_start ==
-              zone.start) {  // 해당 존에 속하는 파일인지 확인
+          if (extent.start >= zone.start &&
+              (extent.start + extent.length) <=
+                  (zone.start + zone_size)) {  // 해당 존에 속하는 파일인지 확인
             std::cout << "File: " << extent.filename
                       << " is in zone starting at " << zone.start << std::endl;
             if (processed_files.find(extent.filename) ==
@@ -419,14 +417,13 @@ void ZenFS::ZoneCleaning(bool forced) {
                                                    &file_mod_time, nullptr);
               // 수정 시간을 제대로 가져왔다면 출력합니다.
               if (s.ok()) {
-                std::cout << "File modification time: " << file_mod_time
-                          << std::endl;
-
-                // 수정 시간이 가장 최신인 경우, recent_modification_time을
-                // 업데이트합니다.
-                if (file_mod_time > recent_modification_time) {
-                  recent_modification_time = file_mod_time;
-                }
+                uint64_t file_age =
+                    std::chrono::duration_cast<std::chrono::seconds>(
+                        current_time.time_since_epoch())
+                        .count() -
+                    file_mod_time;
+                std::cout << "File_age: " << file_age << std::endl;
+                total_age += file_age;
               } else {
                 // 수정 시간을 가져오지 못한 경우 오류를 출력합니다.
                 std::cerr << "Failed to get modification time for file: "
@@ -442,19 +439,15 @@ void ZenFS::ZoneCleaning(bool forced) {
           }
         }
       }
-
-      // 나이(Age)를 계산합니다.
-      uint64_t age = std::chrono::duration_cast<std::chrono::seconds>(
-                         current_time.time_since_epoch())
-                         .count() -
-                     recent_modification_time;
       /* greedy */
       // victim_candidate.push_back(
       //     {garbage_percent_approx, zone.start});
+
       /* cost-benefit */
-      victim_candidate.push_back(
-          {garbage_percent_approx * age / (100 - garbage_percent_approx) * 2,
-           zone.start});
+      uint64_t cost_benefit_score = garbage_percent_approx * total_age /
+                                    ((100 - garbage_percent_approx) * 2);
+
+      victim_candidate.push_back({cost_benefit_score, zone.start});
       // garbage_percent_approx = 1-u ex) 80 %
       // u = 100 - gpa
       // cost = 2u = (100-gpa)*2
@@ -480,7 +473,7 @@ void ZenFS::ZoneCleaning(bool forced) {
   // victim_candidate 출력
   std::cout << "Victim candidates:" << std::endl;
   for (const auto& candidate : victim_candidate) {
-    std::cout << "Garbage Percent: " << candidate.first
+    std::cout << "cost-benefit score: " << candidate.first
               << ", Zone Start: " << candidate.second << std::endl;
   }
 
