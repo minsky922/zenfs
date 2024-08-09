@@ -403,12 +403,12 @@ void ZenFS::ZoneCleaning(bool forced) {
           if (extent.zone_start ==
               zone.start) {  // 현재 존에 속하는 익스텐트만 처리
             // 익스텐트 정보 출력
-            std::cout << "  Zone File ID: " << zone_file.file_id
-                      << " | Filename: " << zone_file.filename
-                      << " | Extent Start: " << extent.start
-                      << " | Extent Length: " << extent.length << std::endl;
-            std::cout << "  extent.File: " << extent.filename
-                      << " | Zone Start: " << zone.start << std::endl;
+            // std::cout << "  Zone File ID: " << zone_file.file_id
+            //           << " | Filename: " << zone_file.filename
+            //           << " | Extent Start: " << extent.start
+            //           << " | Extent Length: " << extent.length << std::endl;
+            // std::cout << "  extent.File: " << extent.filename
+            //           << " | Zone Start: " << zone.start << std::endl;
 
             uint64_t file_mod_time = 0;
 
@@ -422,13 +422,14 @@ void ZenFS::ZoneCleaning(bool forced) {
                       current_time.time_since_epoch())
                       .count() -
                   file_mod_time;
-              std::cout << "File_age: " << file_age << std::endl;
+              // std::cout << "File_age: " << file_age << std::endl;
               total_age += file_age;
-            } else {
-              std::cerr << "Failed to get modification time for file: "
-                        << zone_file.filename << " Error: " << s.ToString()
-                        << std::endl;
             }
+            // else {
+            //   std::cerr << "Failed to get modification time for file: "
+            //             << zone_file.filename << " Error: " << s.ToString()
+            //             << std::endl;
+            // }
           }
         }
       }
@@ -449,10 +450,11 @@ void ZenFS::ZoneCleaning(bool forced) {
         victim_candidate.push_back({cost_benefit_score, zone.start});
         std::cout << "  Added to victim_candidate: Zone Start: " << zone.start
                   << std::endl;
-      } else {
-        std::cerr << "  Warning: Denominator is zero, skipping this zone."
-                  << std::endl;
       }
+      // // else {
+      //   std::cerr << "  Warning: Denominator is zero, skipping this zone."
+      //             << std::endl;
+      // }
 
       // garbage_percent_approx = 1-u ex) 80 %
       // u = 100 - gpa
