@@ -500,12 +500,13 @@ void ZenFS::ZoneCleaning(bool forced) {
   // reclaimed_zone_n = reclaimed_zone_n > victim_candidate.size()
   //                        ? victim_candidate.size()
   //                        : reclaimed_zone_n;
-  free_percent_ = zbd_->CalculateFreePercent();
-  if (free_percent_ > 16) {
-    reclaimed_zone_n = 2;
-  } else {
-    reclaimed_zone_n = victim_candidate.size();
-  }
+  // free_percent_ = zbd_->CalculateFreePercent();
+  // if (free_percent_ > 16) {
+  //   reclaimed_zone_n = 2;
+  // } else {
+  //   reclaimed_zone_n = victim_candidate.size();
+  // }
+  reclaimed_zone_n = victim_candidate.size();
 
   // 청소 대상 존 선택
   for (size_t i = 0;
