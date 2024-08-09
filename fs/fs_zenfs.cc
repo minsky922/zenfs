@@ -393,46 +393,57 @@ void ZenFS::ZoneCleaning(bool forced) {
 
       // IOOptions 객체를 생성합니다.
       rocksdb::IOOptions io_options;
-      std::set<std::string>
-          processed_files;  // 이미 처리한 파일을 저장하기 위한 집합
+      // std::set<std::string>
+      //     processed_files;  // 이미 처리한 파일을 저장하기 위한 집합
+      std::cout << "Processing Zone at start: " << zone.start << std::endl;
 
       // zone_files_를 사용하여 해당 존에 속한 파일들에 접근합니다.
       for (const auto& zone_file : snapshot.zone_files_) {
+        std::cout << "  Zone File ID: " << zone_file.file_id
+                  << " | Filename: " << zone_file.filename
+                  << " | Number of Extents: " << zone_file.extents.size()
+                  << std::endl;
+
         for (const auto& extent : zone_file.extents) {
           if (extent.start >= zone.start &&
               (extent.start + extent.length) <=
                   (zone.start + zone_size)) {  // 해당 존에 속하는 파일인지 확인
-            std::cout << "File: " << extent.filename
-                      << " is in zone starting at " << zone.start << std::endl;
-            if (processed_files.find(extent.filename) ==
-                processed_files.end()) {
-              std::cout << "Processing file: " << extent.filename << std::endl;
-              uint64_t file_mod_time = 0;
+            // 익스텐트 정보 출력
+            std::cout << "  File: " << extent.filename
+                      << " | Extent Start: " << extent.start
+                      << " | Extent Length: " << extent.length
+                      << " | Zone Start: " << zone.start << std::endl;
+            // if (processed_files.find(extent.filename) ==
+            //     processed_files.end()) {
+            //   std::cout << "Processing file: " << extent.filename <<
+            //   std::endl;
+            uint64_t file_mod_time = 0;
 
-              // 파일의 수정 시간을 가져옵니다.
-              IOStatus s = GetFileModificationTime(extent.filename, io_options,
-                                                   &file_mod_time, nullptr);
-              // 수정 시간을 제대로 가져왔다면 출력합니다.
-              if (s.ok()) {
-                uint64_t file_age =
-                    std::chrono::duration_cast<std::chrono::seconds>(
-                        current_time.time_since_epoch())
-                        .count() -
-                    file_mod_time;
-                std::cout << "File_age: " << file_age << std::endl;
-                total_age += file_age;
-              } else {
-                // 수정 시간을 가져오지 못한 경우 오류를 출력합니다.
-                std::cerr << "Failed to get modification time for file: "
-                          << zone_file.filename << " Error: " << s.ToString()
-                          << std::endl;
-              }
+            // 파일의 수정 시간을 가져옵니다.
+            IOStatus s = GetFileModificationTime(extent.filename, io_options,
+                                                 &file_mod_time, nullptr);
+            // 수정 시간을 제대로 가져왔다면 출력합니다.
+            if (s.ok()) {
+              uint64_t file_age =
+                  std::chrono::duration_cast<std::chrono::seconds>(
+                      current_time.time_since_epoch())
+                      .count() -
+                  file_mod_time;
+              std::cout << "File_age: " << file_age << std::endl;
+              total_age += file_age;
+              // } else {
+              //   // 수정 시간을 가져오지 못한 경우 오류를 출력합니다.
+              //   std::cerr << "Failed to get modification time for file: "
+              //             << zone_file.filename << " Error: " << s.ToString()
+              //             << std::endl;
+              // }
               // 파일을 처리한 파일 목록에 추가합니다.
-              processed_files.insert(extent.filename);
-            } else {
-              std::cout << "Skipping already processed file: "
-                        << extent.filename << std::endl;
+              // processed_files.insert(extent.filename);
             }
+            // else {
+            //   std::cout << "Skipping already processed file: "
+            //             << extent.filename << std::endl;
+            // }
           }
         }
       }
