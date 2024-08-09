@@ -399,13 +399,19 @@ void ZenFS::ZoneCleaning(bool forced) {
       std::set<std::string>
           processed_files;  // 이미 처리한 파일을 저장하기 위한 집합
 
+      std::cout << "Total number of files in zone: "
+                << snapshot.zone_files_.size() << std::endl;
+
       // zone_files_를 사용하여 해당 존에 속한 파일들에 접근합니다.
       for (const auto& zone_file : snapshot.zone_files_) {
         for (const auto& extent : zone_file.extents) {
           if (extent.zone_start ==
               zone.start) {  // 해당 존에 속하는 파일인지 확인
+            std::cout << "File: " << extent.filename
+                      << " is in zone starting at " << zone.start << std::endl;
             if (processed_files.find(extent.filename) ==
                 processed_files.end()) {
+              std::cout << "Processing file: " << extent.filename << std::endl;
               uint64_t file_mod_time = 0;
 
               // 파일의 수정 시간을 가져옵니다.
@@ -429,6 +435,9 @@ void ZenFS::ZoneCleaning(bool forced) {
               }
               // 파일을 처리한 파일 목록에 추가합니다.
               processed_files.insert(extent.filename);
+            } else {
+              std::cout << "Skipping already processed file: "
+                        << extent.filename << std::endl;
             }
           }
         }
