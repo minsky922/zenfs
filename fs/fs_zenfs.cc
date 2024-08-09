@@ -407,14 +407,9 @@ void ZenFS::ZoneCleaning(bool forced) {
                       << " | Filename: " << zone_file.filename
                       << " | Extent Start: " << extent.start
                       << " | Extent Length: " << extent.length << std::endl;
-            std::cout << "  File: " << extent.filename
-                      << " | Extent Start: " << extent.start
-                      << " | Extent Length: " << extent.length
+            std::cout << "  extent.File: " << extent.filename
                       << " | Zone Start: " << zone.start << std::endl;
-            // if (processed_files.find(extent.filename) ==
-            //     processed_files.end()) {
-            //   std::cout << "Processing file: " << extent.filename <<
-            //   std::endl;
+
             uint64_t file_mod_time = 0;
 
             // 파일의 수정 시간을 가져옵니다.
@@ -429,19 +424,12 @@ void ZenFS::ZoneCleaning(bool forced) {
                   file_mod_time;
               std::cout << "File_age: " << file_age << std::endl;
               total_age += file_age;
-              // } else {
-              //   // 수정 시간을 가져오지 못한 경우 오류를 출력합니다.
-              //   std::cerr << "Failed to get modification time for file: "
-              //             << zone_file.filename << " Error: " << s.ToString()
-              //             << std::endl;
-              // }
-              // 파일을 처리한 파일 목록에 추가합니다.
-              // processed_files.insert(extent.filename);
+              std::cout << "File age added: " << file_age << std::endl;
+            } else {
+              std::cerr << "Failed to get modification time for file: "
+                        << zone_file.filename << " Error: " << s.ToString()
+                        << std::endl;
             }
-            // else {
-            //   std::cout << "Skipping already processed file: "
-            //             << extent.filename << std::endl;
-            // }
           }
         }
       }
@@ -452,6 +440,8 @@ void ZenFS::ZoneCleaning(bool forced) {
       /* cost-benefit */
       uint64_t cost_benefit_score = garbage_percent_approx * total_age /
                                     ((100 - garbage_percent_approx) * 2);
+      std::cout << "  Calculated cost-benefit score: " << cost_benefit_score
+                << std::endl;
 
       victim_candidate.push_back({cost_benefit_score, zone.start});
       // garbage_percent_approx = 1-u ex) 80 %
@@ -459,6 +449,7 @@ void ZenFS::ZoneCleaning(bool forced) {
       // cost = 2u = (100-gpa)*2
     } else {  // 유효 데이터가 없는 경우
       all_inval_zone_n++;
+      std::cout << "all_inal_zone..." << std::endl;
     }
   }
 
@@ -474,6 +465,7 @@ void ZenFS::ZoneCleaning(bool forced) {
   // 유지할 시간의 추정치로 사용했습니다(즉, 가장 최근에 수정된 블록의 나이)
 
   // 가비지 비율에 따라 후보 존 정렬(greedy)
+  std::cout << "Sorting victim candidates..." << std::endl;
   sort(victim_candidate.rbegin(), victim_candidate.rend());
 
   // victim_candidate 출력
