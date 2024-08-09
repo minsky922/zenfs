@@ -396,32 +396,39 @@ void ZenFS::ZoneCleaning(bool forced) {
 
       // IOOptions 객체를 생성합니다.
       rocksdb::IOOptions io_options;
+      std::set<std::string>
+          processed_files;  // 이미 처리한 파일을 저장하기 위한 집합
 
       // zone_files_를 사용하여 해당 존에 속한 파일들에 접근합니다.
       for (const auto& zone_file : snapshot.zone_files_) {
         for (const auto& extent : zone_file.extents) {
           if (extent.zone_start ==
               zone.start) {  // 해당 존에 속하는 파일인지 확인
-            uint64_t file_mod_time = 0;
+            if (processed_files.find(extent.filename) ==
+                processed_files.end()) {
+              uint64_t file_mod_time = 0;
 
-            // 파일의 수정 시간을 가져옵니다.
-            IOStatus s = GetFileModificationTime(zone_file.filename, io_options,
-                                                 &file_mod_time, nullptr);
-            // 수정 시간을 제대로 가져왔다면 출력합니다.
-            if (s.ok()) {
-              std::cout << "File modification time: " << file_mod_time
-                        << std::endl;
+              // 파일의 수정 시간을 가져옵니다.
+              IOStatus s = GetFileModificationTime(extent.filename, io_options,
+                                                   &file_mod_time, nullptr);
+              // 수정 시간을 제대로 가져왔다면 출력합니다.
+              if (s.ok()) {
+                std::cout << "File modification time: " << file_mod_time
+                          << std::endl;
 
-              // 수정 시간이 가장 최신인 경우, recent_modification_time을
-              // 업데이트합니다.
-              if (file_mod_time > recent_modification_time) {
-                recent_modification_time = file_mod_time;
+                // 수정 시간이 가장 최신인 경우, recent_modification_time을
+                // 업데이트합니다.
+                if (file_mod_time > recent_modification_time) {
+                  recent_modification_time = file_mod_time;
+                }
+              } else {
+                // 수정 시간을 가져오지 못한 경우 오류를 출력합니다.
+                std::cerr << "Failed to get modification time for file: "
+                          << zone_file.filename << " Error: " << s.ToString()
+                          << std::endl;
               }
-            } else {
-              // 수정 시간을 가져오지 못한 경우 오류를 출력합니다.
-              std::cerr << "Failed to get modification time for file: "
-                        << zone_file.filename << " Error: " << s.ToString()
-                        << std::endl;
+              // 파일을 처리한 파일 목록에 추가합니다.
+              processed_files.insert(extent.filename);
             }
           }
         }
@@ -437,8 +444,11 @@ void ZenFS::ZoneCleaning(bool forced) {
       //     {garbage_percent_approx, zone.start});
       /* cost-benefit */
       victim_candidate.push_back(
-          {garbage_percent_approx * age / (zone.used_capacity * 2),
+          {garbage_percent_approx * age / (100 - garbage_percent_approx) * 2,
            zone.start});
+      // garbage_percent_approx = 1-u ex) 80 %
+      // u = 100 - gpa
+      // cost = 2u = (100-gpa)*2
     } else {  // 유효 데이터가 없는 경우
       all_inval_zone_n++;
     }
