@@ -424,7 +424,6 @@ void ZenFS::ZoneCleaning(bool forced) {
                   file_mod_time;
               std::cout << "File_age: " << file_age << std::endl;
               total_age += file_age;
-              std::cout << "File age added: " << file_age << std::endl;
             } else {
               std::cerr << "Failed to get modification time for file: "
                         << zone_file.filename << " Error: " << s.ToString()
@@ -433,17 +432,28 @@ void ZenFS::ZoneCleaning(bool forced) {
           }
         }
       }
+      std::cout << "Total_age: " << total_age << std::endl;
+      uint64_t denominator = (100 - garbage_percent_approx) * 2;
+      std::cout << "  Denominator: " << denominator << std::endl;
       /* greedy */
       // victim_candidate.push_back(
       //     {garbage_percent_approx, zone.start});
 
       /* cost-benefit */
-      uint64_t cost_benefit_score = garbage_percent_approx * total_age /
-                                    ((100 - garbage_percent_approx) * 2);
-      std::cout << "  Calculated cost-benefit score: " << cost_benefit_score
-                << std::endl;
+      if (denominator != 0) {
+        uint64_t cost_benefit_score =
+            garbage_percent_approx * total_age / denominator;
+        std::cout << "  Calculated cost-benefit score: " << cost_benefit_score
+                  << std::endl;
 
-      victim_candidate.push_back({cost_benefit_score, zone.start});
+        victim_candidate.push_back({cost_benefit_score, zone.start});
+        std::cout << "  Added to victim_candidate: Zone Start: " << zone.start
+                  << std::endl;
+      } else {
+        std::cerr << "  Warning: Denominator is zero, skipping this zone."
+                  << std::endl;
+      }
+
       // garbage_percent_approx = 1-u ex) 80 %
       // u = 100 - gpa
       // cost = 2u = (100-gpa)*2
