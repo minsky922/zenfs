@@ -504,7 +504,7 @@ void ZenFS::ZoneCleaning(bool forced) {
   if (free_percent_ > 15) {
     reclaimed_zone_n = 2;
   } else {
-    reclaimed_zone_n = 5;
+    reclaimed_zone_n = vicim_candidate.size();
   }
 
   // 청소 대상 존 선택
