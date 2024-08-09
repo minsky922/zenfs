@@ -391,9 +391,6 @@ void ZenFS::ZoneCleaning(bool forced) {
       auto current_time = std::chrono::system_clock::now();
       uint64_t total_age = 0;
 
-      // 존에서 가장 최근에 수정된 블록의 시간을 가져옵니다.
-      uint64_t recent_modification_time = 0;
-
       // IOOptions 객체를 생성합니다.
       rocksdb::IOOptions io_options;
       std::set<std::string>
