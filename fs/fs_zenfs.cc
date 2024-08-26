@@ -388,7 +388,7 @@ void ZenFS::ZoneCleaning(bool forced) {
         100 - 100 * zone.used_capacity / zone.max_capacity;  // 가비지 비율
     if (zone.used_capacity > 0) {  // 유효 데이터(valid data)가 있는 경우
       // 현재 시간을 얻습니다.
-      auto current_time = std::chrono::system_clock::now();
+      // auto current_time = std::chrono::system_clock::now();
       uint64_t total_age = 0;
 
       // IOOptions 객체를 생성합니다.
