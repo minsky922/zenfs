@@ -351,7 +351,6 @@ uint64_t ZenFS::EstimateFileAge(Env::WriteLifeTimeHint hint) {
 }
 
 void ZenFS::ZoneCleaning(bool forced) {
-  // int start = GetMountTime();  // 시작 시간 기록
   uint64_t zone_size = zbd_->GetZoneSize();
   size_t should_be_copied = 0;
   auto start_chrono =
@@ -373,7 +372,7 @@ void ZenFS::ZoneCleaning(bool forced) {
   std::vector<std::pair<uint64_t, uint64_t>> victim_candidate;
   std::set<uint64_t> migrate_zones_start;
 
-  // 모든 파일의 WriteLifeTimeHint 가져오기
+  // 모든 파일의 WriteLifeTimeHint 가져오기 - LIZC
   auto lifetime_hints = GetWriteLifeTimeHints();
 
   // 스냅샷에서 모든 존을 순회하며 상태 확인
@@ -387,15 +386,12 @@ void ZenFS::ZoneCleaning(bool forced) {
     uint64_t garbage_percent_approx =
         100 - 100 * zone.used_capacity / zone.max_capacity;  // 가비지 비율
     if (zone.used_capacity > 0) {  // 유효 데이터(valid data)가 있는 경우
-      // 현재 시간을 얻습니다.
+      // 현재 시간을 얻습니다. - CBZC1
       // auto current_time = std::chrono::system_clock::now();
       uint64_t total_age = 0;
 
       // IOOptions 객체를 생성합니다.
       rocksdb::IOOptions io_options;
-      // std::set<std::string>
-      //     processed_files;  // 이미 처리한 파일을 저장하기 위한 집합
-      // std::cout << "Processing Zone at start: " << zone.start << std::endl;
 
       // zone_files_를 사용하여 해당 존에 속한 파일들에 접근합니다.
       for (const auto& zone_file : snapshot.zone_files_) {
@@ -432,7 +428,15 @@ void ZenFS::ZoneCleaning(bool forced) {
             auto it = lifetime_hints.find(extent.filename);
             if (it != lifetime_hints.end()) {
               Env::WriteLifeTimeHint hint = it->second;
+              // WriteLifeTimeHint 값 출력
+              std::cout << "Filename: " << extent.filename
+                        << ", WriteLifeTimeHint: " << static_cast<int>(hint)
+                        << std::endl;
+
               uint64_t file_age = EstimateFileAge(hint);  // 추정된 나이 사용
+              // 계산된 file_age 값 출력
+              std::cout << "Estimated file age for " << extent.filename << ": "
+                        << file_age << std::endl;
               total_age += file_age;
             }
           }
@@ -447,8 +451,13 @@ void ZenFS::ZoneCleaning(bool forced) {
 
       /* cost-benefit */
       if (denominator != 0) {
+        // u = valid
+        // garbage_percent_approx(free space+invalid)=1-valid= 1-u ex) 80 %
+        // cost = 2u = (100-gpa)*2
+
         uint64_t cost_benefit_score =
             garbage_percent_approx * total_age / denominator;
+
         // std::cout << "  Calculated cost-benefit score: " <<
         // cost_benefit_score
         //           << std::endl;
@@ -458,14 +467,6 @@ void ZenFS::ZoneCleaning(bool forced) {
         // zone.start
         //           << std::endl;
       }
-      // // else {
-      //   std::cerr << "  Warning: Denominator is zero, skipping this zone."
-      //             << std::endl;
-      // }
-
-      // garbage_percent_approx = 1-u ex) 80 %
-      // u = 100 - gpa
-      // cost = 2u = (100-gpa)*2
     } else {  // 유효 데이터가 없는 경우
       all_inval_zone_n++;
       std::cout << "all_inal_zone..." << std::endl;
@@ -505,12 +506,6 @@ void ZenFS::ZoneCleaning(bool forced) {
   reclaimed_zone_n = reclaimed_zone_n > victim_candidate.size()
                          ? victim_candidate.size()
                          : reclaimed_zone_n;
-  // free_percent_ = zbd_->CalculateFreePercent();
-  // if (free_percent_ > 16) {
-  //   reclaimed_zone_n = 2;
-  // } else {
-  //   reclaimed_zone_n = victim_candidate.size();
-  // }
 
   // 청소 대상 존 선택
   for (size_t i = 0;
