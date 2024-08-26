@@ -475,6 +475,7 @@ class ZenFS : public FileSystemWrapper {
   void ZCLock(void) override { zc_lock_.lock(); }
   void ZCUnLock(void) override { zc_lock_.unlock(); }
   void BackgroundStatTimeLapse();
+  uint64_t EstimateFileAge(Env::WriteLifeTimeHint hint);
   // uint64_t GetRecentModificationTime(ZenFSZone& zone);
   //////////////////////////////////
   void GetZenFSSnapshot(ZenFSSnapshot& snapshot,

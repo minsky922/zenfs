@@ -335,23 +335,20 @@ void ZenFS::BackgroundStatTimeLapse() {
   }
 }
 
-// uint64_t ZenFS::GetRecentModificationTime(ZenFSZone& zone) {
-//   uint64_t recent_modification_time = 0;
-
-//   // 존 내 모든 파일에 대해 루프를 돌면서 가장 최근의 수정 시간을 찾는다.
-//   for (const auto& file : zone.files) {
-//     uint64_t file_mod_time = file->GetFileModificationTime();
-
-//     std::cout << "File modification time: " << file_mod_time << std::endl;
-
-//     // 수정 시간이 가장 최신인 경우, recent_modification_time을 업데이트
-//     if (file_mod_time > recent_modification_time) {
-//       recent_modification_time = file_mod_time;
-//     }
-//   }
-
-//   return recent_modification_time;
-// }
+uint64_t EstimateFileAge(Env::WriteLifeTimeHint hint) {
+  switch (hint) {
+    case Env::WLTH_SHORT:
+      return 1;
+    case Env::WLTH_MEDIUM:
+      return 2;
+    case Env::WLTH_LONG:
+      return 3;
+    case Env::WLTH_EXTREME:
+      return 4;
+    default:
+      return 1;  // 기본적으로 짧은 수명으로 간주
+  }
+}
 
 void ZenFS::ZoneCleaning(bool forced) {
   // int start = GetMountTime();  // 시작 시간 기록
@@ -375,6 +372,9 @@ void ZenFS::ZoneCleaning(bool forced) {
   size_t all_inval_zone_n = 0;
   std::vector<std::pair<uint64_t, uint64_t>> victim_candidate;
   std::set<uint64_t> migrate_zones_start;
+
+  // 모든 파일의 WriteLifeTimeHint 가져오기
+  auto lifetime_hints = GetWriteLifeTimeHints();
 
   // 스냅샷에서 모든 존을 순회하며 상태 확인
   for (const auto& zone : snapshot.zones_) {
@@ -410,26 +410,31 @@ void ZenFS::ZoneCleaning(bool forced) {
             // std::cout << "  extent.File: " << extent.filename
             //           << " | Zone Start: " << zone.start << std::endl;
 
-            uint64_t file_mod_time = 0;
+            /* CBZC1*/
+            // uint64_t file_mod_time = 0;
 
-            // 파일의 수정 시간을 가져옵니다.
-            IOStatus s = GetFileModificationTime(extent.filename, io_options,
-                                                 &file_mod_time, nullptr);
-            // 수정 시간을 제대로 가져왔다면 출력합니다.
-            if (s.ok()) {
-              uint64_t file_age =
-                  std::chrono::duration_cast<std::chrono::seconds>(
-                      current_time.time_since_epoch())
-                      .count() -
-                  file_mod_time;
-              // std::cout << "File_age: " << file_age << std::endl;
+            // // 파일의 수정 시간을 가져옵니다.
+            // IOStatus s = GetFileModificationTime(extent.filename, io_options,
+            //                                      &file_mod_time, nullptr);
+            // // 수정 시간을 제대로 가져왔다면 출력합니다.
+            // if (s.ok()) {
+            //   uint64_t file_age =
+            //       std::chrono::duration_cast<std::chrono::seconds>(
+            //           current_time.time_since_epoch())
+            //           .count() -
+            //       file_mod_time;
+            //   // std::cout << "File_age: " << file_age << std::endl;
+            //   total_age += file_age;
+            // }
+
+            /*CBZC2 - LIZC*/
+            // 수명 힌트를 기반으로 나이 추정
+            auto it = lifetime_hints.find(extent.filename);
+            if (it != lifetime_hints.end()) {
+              Env::WriteLifeTimeHint hint = it->second;
+              uint64_t file_age = EstimateFileAge(hint);  // 추정된 나이 사용
               total_age += file_age;
             }
-            // else {
-            //   std::cerr << "Failed to get modification time for file: "
-            //             << zone_file.filename << " Error: " << s.ToString()
-            //             << std::endl;
-            // }
           }
         }
       }
