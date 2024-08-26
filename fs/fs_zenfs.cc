@@ -335,7 +335,7 @@ void ZenFS::BackgroundStatTimeLapse() {
   }
 }
 
-uint64_t EstimateFileAge(Env::WriteLifeTimeHint hint) {
+uint64_t ZenFS::EstimateFileAge(Env::WriteLifeTimeHint hint) {
   switch (hint) {
     case Env::WLTH_SHORT:
       return 1;
