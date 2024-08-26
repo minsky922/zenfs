@@ -443,7 +443,7 @@ void ZenFS::ZoneCleaning(bool forced) {
           }
         }
       }
-      // std::cout << "Total_age: " << total_age << std::endl;
+      std::cout << "Total_age: " << total_age << std::endl;
       uint64_t denominator = (100 - garbage_percent_approx) * 2;
       // std::cout << "  Denominator: " << denominator << std::endl;
       /* greedy */
