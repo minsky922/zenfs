@@ -428,21 +428,22 @@ void ZenFS::ZoneCleaning(bool forced) {
             auto it = lifetime_hints.find(extent.filename);
             if (it != lifetime_hints.end()) {
               Env::WriteLifeTimeHint hint = it->second;
-              // WriteLifeTimeHint 값 출력
-              std::cout << "Filename: " << extent.filename
-                        << ", WriteLifeTimeHint: " << static_cast<int>(hint)
-                        << std::endl;
+              // // WriteLifeTimeHint 값 출력
+              // std::cout << "Filename: " << extent.filename
+              //           << ", WriteLifeTimeHint: " << static_cast<int>(hint)
+              //           << std::endl;
 
               uint64_t file_age = EstimateFileAge(hint);  // 추정된 나이 사용
-              // 계산된 file_age 값 출력
-              std::cout << "Estimated file age for " << extent.filename << ": "
-                        << file_age << std::endl;
+              // // 계산된 file_age 값 출력
+              // std::cout << "Estimated file age for " << extent.filename << ":
+              // "
+              //           << file_age << std::endl;
               total_age += file_age;
             }
           }
         }
       }
-      std::cout << "Total_age: " << total_age << std::endl;
+      // std::cout << "Total_age: " << total_age << std::endl;
       uint64_t denominator = (100 - garbage_percent_approx) * 2;
       // std::cout << "  Denominator: " << denominator << std::endl;
       /* greedy */
